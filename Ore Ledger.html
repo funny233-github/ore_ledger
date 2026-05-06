@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ore Ledger — Minecraft Stock Market Bookkeeper</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ----- Reset & Base ----- */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    /* Primary - Claude-inspired purple */
+    --primary-h: 280;
+    --primary: oklch(0.55 0.25 var(--primary-h));
+    --primary-light: oklch(0.70 0.15 var(--primary-h));
+    --primary-subtle: oklch(0.88 0.08 var(--primary-h));
+    --primary-dark: oklch(0.40 0.20 var(--primary-h));
+    --primary-glow: oklch(0.55 0.25 var(--primary-h) / 0.15);
+
+    /* Neutrals - warm gray */
+    --bg: oklch(0.985 0.002 280);
+    --surface: oklch(0.995 0.001 280);
+    --surface-hover: oklch(0.97 0.004 280);
+    --border: oklch(0.92 0.006 280);
+    --border-light: oklch(0.95 0.004 280);
+
+    /* Text */
+    --text: oklch(0.18 0.01 280);
+    --text-secondary: oklch(0.45 0.014 280);
+    --text-muted: oklch(0.60 0.01 280);
+    --text-inverse: oklch(0.98 0.002 280);
+
+    /* Semantic */
+    --green: oklch(0.60 0.18 145);
+    --green-bg: oklch(0.60 0.18 145 / 0.10);
+    --red: oklch(0.55 0.22 30);
+    --red-bg: oklch(0.55 0.22 30 / 0.10);
+    --blue: oklch(0.55 0.20 250);
+    --blue-bg: oklch(0.55 0.20 250 / 0.10);
+    --amber: oklch(0.65 0.18 85);
+    --amber-bg: oklch(0.65 0.18 85 / 0.10);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.04);
+    --shadow-md: 0 4px 12px oklch(0 0 0 / 0.06);
+    --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.10);
+
+    /* Radii */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+
+    /* Transitions */
+    --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Layout */
+    --sidebar-w: 220px;
+  }
+
+  html { font-size: 15px; }
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input, select, button, textarea { font-family: inherit; font-size: inherit; }
+  a { color: var(--primary); text-decoration: none; }
+
+  /* ----- Scrollbar ----- */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ----- Page layout ----- */
+  .page { width: 100%; }
+
+  /* ----- Responsive ----- */
+  @media (max-width: 768px) {
+    :root { --sidebar-w: 60px; }
+    .sidebar-nav-text { display: none; }
+    .sidebar-brand-sub { display: none; }
+    .sidebar-footer { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    html { font-size: 14px; }
+  }
+
+  /* ----- Toast animation ----- */
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React + Babel CDN -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js"
+        integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
+        integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"
+        crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
+        integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y"
+        crossorigin="anonymous"></script>
+
+<script type="text/babel" id="app-code">
+  const { useState, useCallback, useMemo, useEffect, useRef, createContext, useContext } = React;
+
+  /* ====================================================
+     SECTION 1: DATA MODEL (Task 2)
+     ==================================================== */
+
+  /* --- 16 Ore Types --- */
+  const ORES = [
+    // Shallow (7)
+    { id: 'shallow_coal',       name: 'Shallow Coal',       category: 'shallow' },
+    { id: 'shallow_copper',     name: 'Shallow Copper',     category: 'shallow' },
+    { id: 'shallow_iron',       name: 'Shallow Iron',       category: 'shallow' },
+    { id: 'shallow_diamond',    name: 'Shallow Diamond',    category: 'shallow' },
+    { id: 'shallow_emerald',    name: 'Shallow Emerald',    category: 'shallow' },
+    { id: 'shallow_redstone',   name: 'Shallow Redstone',   category: 'shallow' },
+    { id: 'shallow_lapis',      name: 'Shallow Lapis Lazuli', category: 'shallow' },
+    // Deep (7)
+    { id: 'deep_coal',          name: 'Deep Coal',          category: 'deep' },
+    { id: 'deep_copper',        name: 'Deep Copper',        category: 'deep' },
+    { id: 'deep_iron',          name: 'Deep Iron',          category: 'deep' },
+    { id: 'deep_diamond',       name: 'Deep Diamond',       category: 'deep' },
+    { id: 'deep_emerald',       name: 'Deep Emerald',       category: 'deep' },
+    { id: 'deep_redstone',      name: 'Deep Redstone',      category: 'deep' },
+    { id: 'deep_lapis',         name: 'Deep Lapis Lazuli',  category: 'deep' },
+    // Nether (2)
+    { id: 'nether_quartz',      name: 'Nether Quartz',      category: 'nether' },
+    { id: 'nether_gold',        name: 'Nether Gold Ore',    category: 'nether' },
+  ];
+
+  /* --- Transaction Types --- */
+  const TX_TYPES = ['buy', 'sell', 'mine_sell', 'expense', 'balance_adjust'];
+
+  const TX_TYPE_CONFIG = {
+    buy:     { label: 'Buy',       icon: '↓',   key: 'buy' },
+    sell:    { label: 'Sell',      icon: '↑',   key: 'sell' },
+    mine_sell: { label: 'Mine Sale', icon: '⛏', key: 'mine_sell' },
+    expense: { label: 'Expense',   icon: '✕',   key: 'expense' },
+    balance_adjust: { label: 'Adjust', icon: '⟳', key: 'balance_adjust' },
+  };
+
+  /* --- ID Generator --- */
+  let _idCounter = Date.now();
+  const generateId = () => `tx_${_idCounter++}_${Math.random().toString(36).slice(2, 6)}`;
+
+  /* --- Default State Factory --- */
+  const createEmptyState = () => ({
+    version: 1,
+    transactions: [],
+    cash: 0,
+    portfolio: {}, // { [oreId]: { quantity, totalCost, avgCost } }
+    metadata: {
+      totalSpeculativeProfit: 0,
+      totalMiningIncome: 0,
+      totalExpenses: 0,
+      totalAdjustments: 0,
+    },
+  });
+
+  /* ====================================================
+     SECTION 2: LOCALSTORAGE UTILITIES (Task 3)
+     ==================================================== */
+
+  const STORAGE_KEY = 'ore_ledger_state';
+
+  const Storage = {
+    loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createEmptyState();
+        const parsed = JSON.parse(raw);
+        // Basic validation
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.transactions)) {
+          return parsed;
+        }
+        console.warn('Ore Ledger: Invalid state in localStorage, resetting to default');
+        return createEmptyState();
+      } catch (e) {
+        console.warn('Ore Ledger: Failed to load state from localStorage, resetting:', e.message);
+        return createEmptyState();
+      }
+    },
+
+    saveState(state) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        return true;
+      } catch (e) {
+        console.error('Ore Ledger: Failed to save state:', e.message);
+        return false;
+      }
+    },
+
+    exportData() {
+      return JSON.stringify(this.loadState(), null, 2);
+    },
+
+    importData(jsonStr) {
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.transactions)) {
+          this.saveState(parsed);
+          return true;
+        }
+        return false;
+      } catch (e) {
+        return false;
+      }
+    },
+
+    clearAll() {
+      localStorage.removeItem(STORAGE_KEY);
+    },
+  };
+
+  /* ====================================================
+     SECTION 3: BUSINESS LOGIC ENGINE (Task 4)
+     ==================================================== */
+
+  const r2 = (n) => Math.round(n * 100) / 100;
+
+  const LedgerEngine = {
+    /** Process a buy transaction and return updated state */
+    processBuy(state, tx) {
+      const s = structuredClone(state);
+      const assetId = tx.asset;
+      const qty = tx.quantity;
+      const totalPaid = Math.abs(tx.totalAmount); // totalAmount is negative
+
+      // Initialize portfolio entry if needed
+      if (!s.portfolio[assetId]) {
+        s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
+      }
+
+      const p = s.portfolio[assetId];
+      p.quantity += qty;
+      p.totalCost += totalPaid;
+      p.avgCost = r2(p.totalCost / p.quantity);
+
+      s.cash -= totalPaid;
+      s.transactions.push({ ...tx, id: generateId(), createdAt: Date.now() });
+
+      return s;
+    },
+
+    /** Process a sell transaction and return updated state */
+    processSell(state, tx) {
+      const s = structuredClone(state);
+      const assetId = tx.asset;
+      const qty = tx.quantity;
+      const received = tx.totalAmount; // positive
+      const source = tx.source || 'portfolio';
+
+      // Mined ore sell: no portfolio impact, pure income
+      if (source === 'mined') {
+        s.cash += received;
+        s.metadata.totalMiningIncome += received;
+        s.transactions.push({
+          ...tx,
+          id: generateId(),
+          createdAt: Date.now(),
+          profit: received, // full amount is profit (mined, no cost basis)
+          source: 'mined',
+        });
+        return s;
+      }
+
+      // Portfolio sell: existing speculative logic
+      const p = s.portfolio[assetId];
+      if (!p || p.quantity < qty) {
+        return { error: `Insufficient holdings: have ${p?.quantity || 0}, trying to sell ${qty}` };
+      }
+
+      const avgCostBefore = p.avgCost;
+      const costOfSold = r2(qty * avgCostBefore);
+      const profit = r2(received - costOfSold);
+
+      p.quantity -= qty;
+      p.totalCost = r2(p.totalCost - costOfSold);
+      if (p.quantity <= 0) {
+        p.quantity = 0;
+        p.totalCost = 0;
+        p.avgCost = 0;
+      } else {
+        p.avgCost = r2(p.totalCost / p.quantity);
+      }
+
+      s.cash += received;
+      s.metadata.totalSpeculativeProfit += profit;
+
+      s.transactions.push({
+        ...tx,
+        id: generateId(),
+        createdAt: Date.now(),
+        profit: profit,
+        avgCostAtSale: avgCostBefore,
+        costOfSold: costOfSold,
+        source: 'portfolio',
+      });
+
+      return s;
+    },
+
+    /** Process a mine_sell transaction (no portfolio impact) */
+    processMineSell(state, tx) {
+      const s = structuredClone(state);
+      const received = tx.totalAmount; // positive
+
+      s.cash += received;
+      s.metadata.totalMiningIncome += received;
+
+      s.transactions.push({ ...tx, id: generateId(), createdAt: Date.now() });
+
+      return s;
+    },
+
+    /** Process an expense transaction */
+    processExpense(state, tx) {
+      const s = structuredClone(state);
+      const spent = Math.abs(tx.totalAmount); // totalAmount is negative
+
+      s.cash -= spent;
+      s.metadata.totalExpenses += spent;
+
+      s.transactions.push({ ...tx, id: generateId(), createdAt: Date.now() });
+
+      return s;
+    },
+
+    /** Process a balance adjustment */
+    processBalanceAdjust(state, tx) {
+      const s = structuredClone(state);
+      const newBalance = tx.newBalance;
+      const adjustment = r2(newBalance - s.cash);
+
+      s.cash = newBalance;
+      s.metadata.totalAdjustments += adjustment;
+
+      s.transactions.push({
+        ...tx,
+        id: generateId(),
+        createdAt: Date.now(),
+        adjustment: adjustment,
+        previousBalance: s.cash - adjustment, // will be overwritten by next line but we fix below
+      });
+
+      // Fix: compute previous before modifying
+      const txIdx = s.transactions.length - 1;
+      s.transactions[txIdx].previousBalance = r2(newBalance - adjustment);
+
+      return s;
+    },
+
+    /** Compute summary statistics from current state */
+    computeSummary(state) {
+      const s = state;
+      let portfolioValue = 0;
+      let totalHoldings = 0;
+
+      Object.entries(s.portfolio).forEach(([id, p]) => {
+        if (p.quantity > 0) {
+          totalHoldings += p.quantity;
+          portfolioValue += r2(p.quantity * p.avgCost);
+        }
+      });
+
+      return {
+        cash: s.cash,
+        speculativeProfit: r2(s.metadata.totalSpeculativeProfit),
+        miningIncome: r2(s.metadata.totalMiningIncome),
+        totalExpenses: r2(s.metadata.totalExpenses),
+        totalAdjustments: r2(s.metadata.totalAdjustments),
+        portfolioValue: r2(portfolioValue),
+        totalHoldings,
+        unrealizedPnL: r2(portfolioValue - Object.values(s.portfolio).reduce((sum, p) => sum + p.totalCost, 0)),
+      };
+    },
+
+    /** Process a transaction: automatically detect type and route */
+    process(state, tx) {
+      switch (tx.type) {
+        case 'buy':           return this.processBuy(state, tx);
+        case 'sell':          return this.processSell(state, tx);
+        case 'mine_sell':     return this.processMineSell(state, tx);
+        case 'expense':       return this.processExpense(state, tx);
+        case 'balance_adjust': return this.processBalanceAdjust(state, tx);
+        default:              return { error: `Unknown transaction type: ${tx.type}` };
+      }
+    },
+  };
+
+  /* ====================================================
+     SECTION 4: HOOKS & STATE MANAGEMENT
+     ==================================================== */
+
+  function useLedger() {
+    const [state, setState] = useState(() => Storage.loadState());
+    const saveTimerRef = useRef(null);
+
+    // Auto-save with debounce
+    useEffect(() => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        Storage.saveState(state);
+      }, 500);
+      return () => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      };
+    }, [state]);
+
+    const summary = useMemo(() => LedgerEngine.computeSummary(state), [state]);
+
+    const addTransaction = useCallback((tx) => {
+      let success = false;
+      setState(prev => {
+        const result = LedgerEngine.process(prev, tx);
+        if (result.error) {
+          console.warn('Ore Ledger: Transaction rejected:', result.error);
+          return prev;
+        }
+        success = true;
+        return result;
+      });
+      return success;
+    }, []);
+
+    const deleteTransaction = useCallback((txId) => {
+      setState(prev => {
+        const tx = prev.transactions.find(t => t.id === txId);
+        if (!tx) return prev;
+
+        const s = structuredClone(prev);
+        s.transactions = s.transactions.filter(t => t.id !== txId);
+
+        // Reverse effects
+        switch (tx.type) {
+          case 'buy': {
+            const assetId = tx.asset;
+            const totalPaid = Math.abs(tx.totalAmount);
+            if (s.portfolio[assetId]) {
+              s.portfolio[assetId].quantity -= tx.quantity;
+              s.portfolio[assetId].totalCost -= totalPaid;
+              if (s.portfolio[assetId].quantity <= 0) {
+                delete s.portfolio[assetId];
+              } else {
+                s.portfolio[assetId].avgCost = r2(s.portfolio[assetId].totalCost / s.portfolio[assetId].quantity);
+              }
+            }
+            s.cash += totalPaid;
+            break;
+          }
+          case 'sell': {
+            const assetId = tx.asset;
+            if (!s.portfolio[assetId]) {
+              s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
+            }
+            const p = s.portfolio[assetId];
+            p.quantity += tx.quantity;
+            p.totalCost += tx.costOfSold || (tx.quantity * (tx.avgCostAtSale || 0));
+            p.avgCost = p.quantity > 0 ? r2(p.totalCost / p.quantity) : 0;
+            s.cash -= tx.totalAmount;
+            s.metadata.totalSpeculativeProfit -= (tx.profit || 0);
+            break;
+          }
+          case 'mine_sell': {
+            s.cash -= tx.totalAmount;
+            s.metadata.totalMiningIncome -= tx.totalAmount;
+            break;
+          }
+          case 'expense': {
+            const spent = Math.abs(tx.totalAmount);
+            s.cash += spent;
+            s.metadata.totalExpenses -= spent;
+            break;
+          }
+          case 'balance_adjust': {
+            s.cash = tx.previousBalance || 0;
+            s.metadata.totalAdjustments -= (tx.adjustment || 0);
+            break;
+          }
+        }
+        return s;
+      });
+    }, []);
+
+    // Get transactions sorted by date DESC
+    const sortedTransactions = useMemo(() => {
+      return [...state.transactions].sort((a, b) => {
+        // Sort by date first, then createdAt
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+    }, [state.transactions]);
+
+    // Get portfolio items with positive quantity
+    const activePortfolio = useMemo(() => {
+      return Object.entries(state.portfolio)
+        .filter(([id, p]) => p.quantity > 0)
+        .map(([id, p]) => {
+          const ore = ORES.find(o => o.id === id);
+          return {
+            id,
+            name: ore ? ore.name : id,
+            category: ore ? ore.category : 'unknown',
+            ...p,
+            currentValue: r2(p.quantity * p.avgCost),
+            pnl: r2((p.quantity * p.avgCost) - p.totalCost),
+          };
+        });
+    }, [state.portfolio]);
+
+    const getOreHolding = useCallback((oreId) => {
+      return state.portfolio[oreId] || { quantity: 0, totalCost: 0, avgCost: 0 };
+    }, [state.portfolio]);
+
+    const recentTransactions = useMemo(() => {
+      return sortedTransactions.slice(0, 5);
+    }, [sortedTransactions]);
+
+    return {
+      state,
+      summary,
+      transactions: sortedTransactions,
+      recentTransactions,
+      activePortfolio,
+      addTransaction,
+      deleteTransaction,
+      getOreHolding,
+    };
+  }
+
+  /* ====================================================
+     SECTION 5: UTILITY FUNCTIONS
+     ==================================================== */
+
+  const formatDate = (d) => {
+    if (!d) return '';
+    const date = new Date(d);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatCurrency = (n) => {
+    if (n === undefined || n === null) return '0.0';
+    const abs = Math.abs(n).toFixed(1);
+    return n < 0 ? `-${abs}` : abs;
+  };
+
+  const formatCurrencyFull = (n) => {
+    if (n === undefined || n === null) return '0.00';
+    return n.toFixed(2);
+  };
+
+  /* ====================================================
+     SECTION 6: TOAST NOTIFICATION SYSTEM
+     ==================================================== */
+
+  const ToastContext = createContext(null);
+
+  function ToastProvider({ children }) {
+    const [toasts, setToasts] = useState([]);
+    const toastId = useRef(0);
+
+    const addToast = useCallback((message, type = 'success', duration = 3000) => {
+      const id = ++toastId.current;
+      setToasts(prev => [...prev, { id, message, type }]);
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, duration);
+    }, []);
+
+    const removeToast = useCallback((id) => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
+
+    return (
+      <ToastContext.Provider value={addToast}>
+        {children}
+        {/* Toast container */}
+        <div style={{
+          position: 'fixed', top: 16, right: 16, zIndex: 9999,
+          display: 'flex', flexDirection: 'column', gap: 8,
+          pointerEvents: 'none',
+        }}>
+          {toasts.map(toast => (
+            <div key={toast.id} onClick={() => removeToast(toast.id)}
+              style={{
+                padding: '12px 20px',
+                borderRadius: 'var(--radius-sm)',
+                background: toast.type === 'success' ? 'var(--green)' :
+                            toast.type === 'error' ? 'var(--red)' : 'var(--primary)',
+                color: '#fff',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                boxShadow: 'var(--shadow-md)',
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                animation: 'slideIn 200ms ease-out',
+                maxWidth: 360,
+              }}
+            >
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      </ToastContext.Provider>
+    );
+  }
+
+  function useToast() {
+    const ctx = useContext(ToastContext);
+    return ctx || (() => {});
+  }
+
+  /* ====================================================
+     SECTION 7: MOCK DATA (temp for Wave 2 layout)
+     ==================================================== */
+
+  const NAV_ITEMS = [
+    { id: 'dashboard',     label: 'Dashboard',     icon: '◈' },
+    { id: 'transactions',  label: 'Transactions',  icon: '↕' },
+    { id: 'portfolio',     label: 'Portfolio',     icon: '⊞' },
+    { id: 'new-entry',     label: 'New Entry',     icon: '+'  },
+  ];
+
+  /* ====================================================
+     SECTION 7: APP SHELL (Task 5)
+     ==================================================== */
+
+  /* --- Sidebar --- */
+  function Sidebar({ activeNav, onNavChange, onExport, onClear }) {
+    return (
+      <aside style={{
+        width: 'var(--sidebar-w)',
+        background: 'var(--surface)',
+        borderRight: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'fixed',
+        top: 0, left: 0, bottom: 0,
+        zIndex: 10,
+        padding: 'var(--space-lg) 0',
+      }}>
+        {/* Brand */}
+        <div style={{ padding: '0 var(--space-lg) var(--space-xl)' }}>
+          <div style={{
+            fontFamily: "'Sora', sans-serif",
+            fontWeight: 700,
+            fontSize: '1.25rem',
+            color: 'var(--primary)',
+            letterSpacing: '-0.02em',
+          }}>Ore Ledger</div>
+          <div className="sidebar-brand-sub" style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)',
+            fontWeight: 400,
+            marginTop: 2,
+          }}>Minecraft Stock Tracker</div>
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 var(--space-sm)' }}>
+          {NAV_ITEMS.map(item => (
+            <button key={item.id}
+              onClick={() => onNavChange(item.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--space-md)',
+                padding: 'var(--space-sm) var(--space-md)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer', fontSize: '0.9rem', fontWeight: activeNav === item.id ? 600 : 500,
+                color: activeNav === item.id ? 'var(--primary-dark)' : 'var(--text-secondary)',
+                background: activeNav === item.id ? 'var(--primary-glow)' : 'none',
+                border: 'none', textAlign: 'left', width: '100%', lineHeight: 1.4,
+                transition: 'all var(--transition)',
+              }}
+              onMouseEnter={e => { if (activeNav !== item.id) e.currentTarget.style.background = 'var(--surface-hover)'; }}
+              onMouseLeave={e => { if (activeNav !== item.id) e.currentTarget.style.background = 'none'; }}
+            >
+              <span style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', opacity: activeNav === item.id ? 1 : 0.8 }}>{item.icon}</span>
+              <span className="sidebar-nav-text" style={{ fontSize: '0.9rem' }}>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className="sidebar-footer" style={{ padding: 'var(--space-md) var(--space-lg) 0', borderTop: '1px solid var(--border)', marginTop: 'auto', paddingTop: 'var(--space-md)' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: 'var(--space-sm)' }}>
+            Ore Ledger v0.1
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+            <button onClick={onExport} title="Export data as JSON"
+              style={{
+                flex: 1, padding: 'var(--space-xs) var(--space-sm)',
+                borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                background: 'none', cursor: 'pointer',
+                fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'inherit',
+                transition: 'all var(--transition)', fontWeight: 500,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >Export</button>
+            <button onClick={onClear} title="Clear all data"
+              style={{
+                flex: 1, padding: 'var(--space-xs) var(--space-sm)',
+                borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                background: 'none', cursor: 'pointer',
+                fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'inherit',
+                transition: 'all var(--transition)', fontWeight: 500,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >Clear</button>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  /* --- Top Bar --- */
+  function TopBar({ title, cashBalance }) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: 'var(--space-md) var(--space-xl)',
+        borderBottom: '1px solid var(--border-light)',
+        background: 'var(--surface)',
+        backdropFilter: 'blur(12px)',
+        position: 'sticky', top: 0, zIndex: 5,
+      }}>
+        <div style={{
+          fontFamily: "'Sora', sans-serif",
+          fontWeight: 600, fontSize: '1.1rem', color: 'var(--text)',
+        }}>{title}</div>
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+          padding: 'var(--space-xs) var(--space-md)',
+          background: 'var(--primary-glow)',
+          borderRadius: 'var(--radius-sm)',
+          fontFamily: "'Space Grotesk', monospace",
+          fontWeight: 600, fontSize: '0.95rem', color: 'var(--primary-dark)',
+        }}>
+          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cash</span>
+          <span>{formatCurrencyFull(cashBalance)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  /* --- Summary Card --- */
+  function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
+    const colorMap = { positive: 'var(--green)', negative: 'var(--red)', neutral: 'var(--text)' };
+    return (
+      <div style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        padding: 'var(--space-lg)',
+        transition: 'all var(--transition)',
+        cursor: 'default',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--primary-subtle)'; }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+      >
+        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-sm)' }}>{label}</div>
+        <div style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 700, fontSize: '1.6rem', letterSpacing: '-0.02em', color: colorMap[typeVariant] }}>{value}</div>
+        {sub && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 'var(--space-xs)' }}>{sub}</div>}
+      </div>
+    );
+  }
+
+  /* --- Transaction Item --- */
+  const TX_VISUAL = {
+    buy:           { icon: '↓', cls: 'buy',    color: 'var(--green)' },
+    sell:          { icon: '↑', cls: 'sell',   color: 'var(--blue)' },
+    mine_sell:     { icon: '⛏', cls: 'mine',   color: 'var(--amber)' },
+    expense:       { icon: '✕', cls: 'expense', color: 'var(--red)' },
+    balance_adjust: { icon: '⟳', cls: 'adjust', color: 'var(--primary)' },
+  };
+
+  const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--primary-glow)' };
+
+  const TX_LABEL = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust' };
+
+  function TransactionItem({ tx, onDelete, showDelete }) {
+    const vis = TX_VISUAL[tx.type] || TX_VISUAL.buy;
+    const bg = TX_BG[tx.type] || TX_BG.buy;
+    const label = TX_LABEL[tx.type] || tx.type;
+    const isNegative = tx.totalAmount < 0;
+    const displayAmount = tx.type === 'balance_adjust'
+      ? (tx.adjustment >= 0 ? `+${formatCurrencyFull(tx.adjustment)}` : formatCurrencyFull(tx.adjustment))
+      : (isNegative ? `-${formatCurrencyFull(Math.abs(tx.totalAmount))}` : `+${formatCurrencyFull(tx.totalAmount)}`);
+    const isPositiveAmount = tx.type === 'balance_adjust' ? tx.adjustment >= 0 : !isNegative;
+
+    let name = tx.description || tx.asset || label;
+    let metaParts = [`${label}`];
+    if (tx.quantity) metaParts.push(`${tx.quantity}x`);
+    metaParts.push(formatDate(tx.date));
+    if (tx.note) metaParts.push(`· ${tx.note}`);
+    if (tx.type === 'sell') {
+      if (tx.source === 'mined') {
+        metaParts.push(`· Mined · +${formatCurrencyFull(tx.profit)}`);
+      } else if (tx.profit !== undefined) {
+        metaParts.push(`· P&L: ${tx.profit >= 0 ? '+' : ''}${formatCurrencyFull(tx.profit)}`);
+      }
+    }
+
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--space-md)',
+        padding: 'var(--space-md) 0',
+        borderBottom: '1px solid var(--border-light)',
+        transition: 'background var(--transition)',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hover)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        <div style={{
+          width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '0.9rem', flexShrink: 0,
+          background: bg, color: vis.color,
+        }}>{vis.icon}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 500, fontSize: '0.9rem', color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>{metaParts.join(' · ')}</div>
+        </div>
+        <div style={{
+          fontFamily: "'Space Grotesk', monospace",
+          fontWeight: 600, fontSize: '0.95rem',
+          textAlign: 'right', whiteSpace: 'nowrap',
+          color: isPositiveAmount ? 'var(--green)' : 'var(--red)',
+        }}>{displayAmount}</div>
+        {showDelete && onDelete && (
+          <button onClick={(e) => { e.stopPropagation(); onDelete(tx.id); }} title="Delete transaction"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '4px 8px', borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-muted)', fontSize: '0.8rem',
+              transition: 'all var(--transition)', flexShrink: 0,
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--red-bg)'; e.currentTarget.style.color = 'var(--red)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          >✕</button>
+        )}
+      </div>
+    );
+  }
+
+  /* --- Quick Action Button --- */
+  function QuickActionBtn({ icon, label, color, onClick }) {
+    return (
+      <button onClick={onClick} style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+        padding: 'var(--space-md) var(--space-lg)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--surface)',
+        border: `1px solid var(--border)`,
+        cursor: 'pointer',
+        transition: 'all var(--transition)',
+        fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)',
+        fontFamily: 'inherit',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.color = color; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.boxShadow = 'none'; }}
+      >
+        <span style={{ fontSize: '1.1rem', color }}>{icon}</span>
+        {label}
+      </button>
+    );
+  }
+
+  /* --- Section Card --- */
+  function SectionCard({ title, children, headerRight }) {
+    return (
+      <div style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          padding: 'var(--space-md) var(--space-lg)',
+          borderBottom: '1px solid var(--border-light)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '0.95rem', color: 'var(--text)' }}>{title}</h2>
+          {headerRight}
+        </div>
+        <div style={{ padding: 'var(--space-lg)' }}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  /* ====================================================
+     SECTION 8: DASHBOARD PAGE (Task 6)
+     ==================================================== */
+
+  function DashboardPage({ ledger, onNavigate }) {
+    const { summary, recentTransactions } = ledger;
+
+    return (
+      <div className="page">
+        <div style={{ marginBottom: 'var(--space-xl)', maxWidth: 1200, margin: '0 auto', padding: 'var(--space-xl)' }}>
+          <div style={{ marginBottom: 'var(--space-xl)' }}>
+            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>Dashboard</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Overview of your ore stock market activity</p>
+          </div>
+
+          {/* Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}>
+            <SummaryCard label="Cash Balance" value={formatCurrencyFull(summary.cash)} sub="Available funds" />
+            <SummaryCard label="Speculative Profit" value={`+${formatCurrencyFull(summary.speculativeProfit)}`} typeVariant={summary.speculativeProfit >= 0 ? 'positive' : 'negative'} sub="Gains from trading" />
+            <SummaryCard label="Mining Income" value={`+${formatCurrencyFull(summary.miningIncome)}`} typeVariant="positive" sub="From selling mined ores" />
+            <SummaryCard label="Portfolio Value" value={formatCurrencyFull(summary.portfolioValue)} sub={`${summary.totalHoldings} items across ores`} />
+          </div>
+
+          {/* Quick Actions */}
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>
+            <QuickActionBtn icon="↓" label="Buy Ore" color="var(--green)" onClick={() => onNavigate('new-entry', 'buy')} />
+            <QuickActionBtn icon="↑" label="Sell Ore" color="var(--blue)" onClick={() => onNavigate('new-entry', 'sell')} />
+            <QuickActionBtn icon="⛏" label="Mine Sale" color="var(--amber)" onClick={() => onNavigate('new-entry', 'mine_sell')} />
+            <QuickActionBtn icon="✕" label="Expense" color="var(--red)" onClick={() => onNavigate('new-entry', 'expense')} />
+          </div>
+
+          {/* Recent Transactions */}
+          <SectionCard title="Recent Transactions" headerRight={
+            <button onClick={() => onNavigate('transactions')} style={{
+              padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-sm)',
+              background: 'none', border: '1px solid var(--border)', cursor: 'pointer',
+              fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'inherit', fontWeight: 500,
+              transition: 'all var(--transition)',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hover)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >View All</button>
+          }>
+            {recentTransactions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-md)', opacity: 0.4 }}>◈</div>
+                <h3 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-xs)' }}>No transactions yet</h3>
+                <p style={{ fontSize: '0.85rem' }}>Record your first transaction to get started</p>
+              </div>
+            ) : (
+              <div>{recentTransactions.map(tx => (
+                <TransactionItem key={tx.id} tx={tx} onDelete={ledger.deleteTransaction} showDelete={true} />
+              ))}</div>
+            )}
+          </SectionCard>
+        </div>
+      </div>
+    );
+  }
+
+  /* ====================================================
+     SECTION 9: TRANSACTIONS PAGE (Task 7)
+     ==================================================== */
+
+  function TransactionsPage({ ledger, onNavigate }) {
+    const { transactions } = ledger;
+    const [filterType, setFilterType] = React.useState('all');
+
+    const filtered = useMemo(() => {
+      if (filterType === 'all') return transactions;
+      return transactions.filter(tx => tx.type === filterType);
+    }, [transactions, filterType]);
+
+    return (
+      <div className="page">
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-xl)' }}>
+          <div style={{ marginBottom: 'var(--space-xl)' }}>
+            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>Transactions</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Complete history of all your financial activities</p>
+          </div>
+
+          {/* Filter */}
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)', flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Filter:</label>
+            {['all', 'buy', 'sell', 'mine_sell', 'expense', 'balance_adjust'].map(type => (
+              <button key={type} onClick={() => setFilterType(type)} style={{
+                padding: 'var(--space-xs) var(--space-md)',
+                borderRadius: 'var(--radius-sm)',
+                border: `1px solid ${filterType === type ? 'var(--primary)' : 'var(--border)'}`,
+                background: filterType === type ? 'var(--primary-glow)' : 'transparent',
+                color: filterType === type ? 'var(--primary-dark)' : 'var(--text-secondary)',
+                cursor: 'pointer', fontSize: '0.8rem', fontWeight: filterType === type ? 600 : 400,
+                fontFamily: 'inherit', transition: 'all var(--transition)',
+              }}>
+                {TX_LABEL[type] || type}
+              </button>
+            ))}
+          </div>
+
+          {/* Transaction List */}
+          <SectionCard title={`All Transactions · ${filtered.length}`} headerRight={
+            <button onClick={() => onNavigate('new-entry')} style={{
+              padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-sm)',
+              background: 'var(--primary)', border: 'none', cursor: 'pointer',
+              fontSize: '0.8rem', color: 'var(--text-inverse)', fontFamily: 'inherit', fontWeight: 500,
+              transition: 'all var(--transition)',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-dark)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; }}
+            >+ New Entry</button>
+          }>
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-md)', opacity: 0.4 }}>↕</div>
+                <h3 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-xs)' }}>No transactions found</h3>
+                <p style={{ fontSize: '0.85rem' }}>
+                  {filterType === 'all' ? 'Record your first transaction to get started' : `No ${TX_LABEL[filterType]?.toLowerCase()} transactions yet`}
+                </p>
+              </div>
+            ) : (
+              <div>{filtered.map(tx => (
+                <TransactionItem key={tx.id} tx={tx} onDelete={ledger.deleteTransaction} showDelete={true} />
+              ))}</div>
+            )}
+          </SectionCard>
+        </div>
+      </div>
+    );
+  }
+
+  /* ====================================================
+     SECTION 10: PORTFOLIO PAGE (Task 8)
+     ==================================================== */
+
+  function PortfolioPage({ ledger }) {
+    const { summary, activePortfolio } = ledger;
+
+    const totalValue = activePortfolio.reduce((s, p) => s + p.currentValue, 0);
+    const totalCost = activePortfolio.reduce((s, p) => s + p.totalCost, 0);
+    const unrealizedPnL = totalValue - totalCost;
+    const pnlPercent = totalCost > 0 ? (unrealizedPnL / totalCost * 100) : 0;
+
+    return (
+      <div className="page">
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-xl)' }}>
+          <div style={{ marginBottom: 'var(--space-xl)' }}>
+            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>Portfolio</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Your current ore holdings and cost basis</p>
+          </div>
+
+          {/* Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}>
+            <SummaryCard label="Total Holdings" value={`${summary.totalHoldings} items`} sub="Across all ores" />
+            <SummaryCard label="Portfolio Value" value={formatCurrencyFull(totalValue)} sub={`Cost basis: ${formatCurrencyFull(totalCost)}`} />
+            <SummaryCard
+              label="Unrealized P&L"
+              value={`${unrealizedPnL >= 0 ? '+' : ''}${formatCurrencyFull(unrealizedPnL)}`}
+              typeVariant={unrealizedPnL >= 0 ? 'positive' : 'negative'}
+              sub={`${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(1)}%`}
+            />
+          </div>
+
+          {/* Holdings Table */}
+          <SectionCard title="Holdings">
+            {activePortfolio.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-md)', opacity: 0.4 }}>⊞</div>
+                <h3 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-xs)' }}>No holdings yet</h3>
+                <p style={{ fontSize: '0.85rem' }}>Buy some ores to start building your portfolio</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {['Ore', 'Quantity', 'Avg Cost', 'Total Cost', 'Current Value', 'P&L'].map(h => (
+                        <th key={h} style={{
+                          textAlign: h === 'Ore' ? 'left' : 'right',
+                          fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em',
+                          color: 'var(--text-muted)', fontWeight: 600,
+                          padding: 'var(--space-sm) var(--space-md)',
+                          borderBottom: '1px solid var(--border)',
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activePortfolio.map(p => {
+                      const pnl = p.currentValue - p.totalCost;
+                      return (
+                        <tr key={p.id}>
+                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontWeight: 500, borderBottom: '1px solid var(--border-light)' }}>{p.name}</td>
+                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{p.quantity}</td>
+                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.avgCost)}</td>
+                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.totalCost)}</td>
+                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.currentValue)}</td>
+                          <td style={{
+                            padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem',
+                            fontFamily: "'Space Grotesk', monospace", fontWeight: 500,
+                            textAlign: 'right', borderBottom: '1px solid var(--border-light)',
+                            color: pnl >= 0 ? 'var(--green)' : 'var(--red)',
+                          }}>{pnl >= 0 ? '+' : ''}{formatCurrencyFull(pnl)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </SectionCard>
+
+          {/* Note */}
+          {activePortfolio.length > 0 && (
+            <div style={{ marginTop: 'var(--space-md)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              * Current values shown at average cost (no real-time pricing).
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ====================================================
+     SECTION 11: NEW ENTRY PAGE (Task 9 — Form Stub)
+     ==================================================== */
+
+  function NewEntryPage({ ledger, preselectedType, onNavigate }) {
+    const { getOreHolding, addTransaction } = ledger;
+    const toast = useToast();
+    const [txType, setTxType] = React.useState(preselectedType || 'buy');
+    const [saleSource, setSaleSource] = React.useState('portfolio');
+    const [formError, setFormError] = React.useState('');
+
+    // Sync txType when preselectedType changes (e.g., quick action from Dashboard)
+    useEffect(() => {
+      if (preselectedType && preselectedType !== txType) {
+        setTxType(preselectedType);
+      }
+    }, [preselectedType]);
+
+    // Form fields (shared)
+    const [date, setDate] = React.useState(() => new Date().toISOString().split('T')[0]);
+    const [oreId, setOreId] = React.useState('');
+    const [quantity, setQuantity] = React.useState('');
+    const [unitPrice, setUnitPrice] = React.useState('');
+    const [description, setDescription] = React.useState('');
+    const [newBalance, setNewBalance] = React.useState('');
+    const [note, setNote] = React.useState('');
+
+    // Reset form when type changes
+    useEffect(() => {
+      setOreId('');
+      setQuantity('');
+      setUnitPrice('');
+      setDescription('');
+      setNewBalance('');
+      setNote('');
+      setSaleSource('portfolio');
+    }, [txType]);
+
+    // Filter ores for sell: only owned ores for portfolio, all ores for mined
+    const availableOres = useMemo(() => {
+      if (txType === 'sell') {
+        if (saleSource === 'mined') return ORES;
+        return ORES.filter(o => {
+          const h = getOreHolding(o.id);
+          return h.quantity > 0;
+        });
+      }
+      return ORES;
+    }, [txType, saleSource, getOreHolding]);
+
+    // Group ores by category
+    const groupedOres = useMemo(() => {
+      const groups = { shallow: [], deep: [], nether: [] };
+      availableOres.forEach(o => {
+        if (groups[o.category]) groups[o.category].push(o);
+      });
+      return groups;
+    }, [availableOres]);
+
+    // Category labels
+    const CATEGORY_LABELS = { shallow: 'Shallow', deep: 'Deep', nether: 'Nether' };
+
+    // Holdings info for sell
+    const currentHolding = getOreHolding(oreId);
+
+    // Auto-calculated total
+    const calculatedTotal = useMemo(() => {
+      const q = parseFloat(quantity) || 0;
+      const p = parseFloat(unitPrice) || 0;
+      const total = q * p;
+      if (txType === 'buy') return -total;
+      return total;
+    }, [quantity, unitPrice, txType]);
+
+    // Balance adjust auto-delta
+    const adjustmentDelta = useMemo(() => {
+      if (txType !== 'balance_adjust') return null;
+      const nb = parseFloat(newBalance);
+      if (isNaN(nb)) return null;
+      return nb - ledger.summary.cash;
+    }, [newBalance, txType, ledger.summary.cash]);
+
+    // Estimated profit for sell
+    const estimatedProfit = useMemo(() => {
+      if (txType !== 'sell' || !oreId || !quantity) return null;
+      const q = parseFloat(quantity) || 0;
+      const p = parseFloat(unitPrice) || 0;
+      const received = q * p;
+      if (saleSource === 'mined') return received; // Full amount is profit (mined)
+      const cost = q * currentHolding.avgCost;
+      return received - cost;
+    }, [txType, saleSource, oreId, quantity, unitPrice, currentHolding]);
+
+    // Quick quantity buttons
+    const QUICK_QTY = [1, 16, 64];
+
+    // Ore category icons
+    const CATEGORY_ICONS = { shallow: '⬆', deep: '⬇', nether: '🔥' };
+
+    // Form submission handler
+    const handleSubmit = useCallback(() => {
+      setFormError('');
+
+      // Validate
+      if (!date) { setFormError('Date is required'); return; }
+
+      if (txType === 'buy' || txType === 'sell' || txType === 'mine_sell') {
+        if (!oreId) { setFormError('Please select an ore'); return; }
+        const q = parseInt(quantity, 10);
+        if (!q || q <= 0) { setFormError('Quantity must be greater than 0'); return; }
+        const p = parseFloat(unitPrice);
+        if (!p || p <= 0) { setFormError('Unit price must be greater than 0'); return; }
+
+        if (txType === 'sell' && saleSource === 'portfolio') {
+          const holding = getOreHolding(oreId);
+          if (q > holding.quantity) {
+            setFormError(`Cannot sell ${q} units — only ${holding.quantity} held`);
+            return;
+          }
+        }
+      } else if (txType === 'expense') {
+        if (!description.trim()) { setFormError('Description is required'); return; }
+        const amt = parseFloat(unitPrice);
+        if (!amt || amt <= 0) { setFormError('Amount must be greater than 0'); return; }
+      } else if (txType === 'balance_adjust') {
+        const nb = parseFloat(newBalance);
+        if (isNaN(nb) || nb < 0) { setFormError('Please enter a valid cash balance'); return; }
+      }
+
+      // Build transaction object
+      let totalAmount = 0;
+      const q = parseInt(quantity, 10);
+      const p = parseFloat(unitPrice);
+
+      switch (txType) {
+        case 'buy':
+          totalAmount = -(q * p);
+          break;
+        case 'sell':
+        case 'mine_sell':
+          totalAmount = q * p;
+          break;
+        case 'expense':
+          totalAmount = -Math.abs(parseFloat(unitPrice));
+          break;
+        case 'balance_adjust':
+          totalAmount = 0; // not used for adjust
+          break;
+      }
+
+      const tx = {
+        type: txType,
+        date,
+        asset: (txType === 'buy' || txType === 'sell' || txType === 'mine_sell') ? oreId : undefined,
+        quantity: (txType === 'buy' || txType === 'sell' || txType === 'mine_sell') ? q : undefined,
+        unitPrice: (txType === 'buy' || txType === 'sell' || txType === 'mine_sell') ? p : (txType === 'expense' ? parseFloat(unitPrice) : undefined),
+        totalAmount: txType === 'balance_adjust' ? 0 : totalAmount,
+        newBalance: txType === 'balance_adjust' ? parseFloat(newBalance) : undefined,
+        description: txType === 'expense' ? description.trim() : undefined,
+        note: note.trim() || undefined,
+        source: txType === 'sell' ? saleSource : undefined,
+      };
+
+      const success = addTransaction(tx);
+      if (success === false || success === undefined) {
+        setFormError('Failed to record transaction. Check portfolio holdings.');
+        return;
+      }
+
+      toast('Transaction recorded successfully', 'success');
+
+      // Reset form
+      setOreId(''); setQuantity(''); setUnitPrice(''); setDescription('');
+      setNewBalance(''); setNote('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setFormError('');
+
+      // Navigate to transactions page
+      setTimeout(() => onNavigate('transactions'), 1000);
+    }, [txType, date, oreId, quantity, unitPrice, description, newBalance, note, addTransaction, getOreHolding, toast, onNavigate]);
+
+    return (
+      <div className="page">
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--space-xl)' }}>
+          <div style={{ marginBottom: 'var(--space-xl)' }}>
+            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>New Entry</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Record a new transaction or activity</p>
+          </div>
+
+          {/* Type selector */}
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>
+            {[
+              { type: 'buy', icon: '↓', label: 'Buy', color: 'var(--green)' },
+              { type: 'sell', icon: '↑', label: 'Sell', color: 'var(--blue)' },
+              { type: 'mine_sell', icon: '⛏', label: 'Mine Sale', color: 'var(--amber)' },
+              { type: 'expense', icon: '✕', label: 'Expense', color: 'var(--red)' },
+              { type: 'balance_adjust', icon: '⟳', label: 'Adjust', color: 'var(--primary)' },
+            ].map(btn => (
+              <button key={btn.type} onClick={() => setTxType(btn.type)} style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+                padding: 'var(--space-sm) var(--space-md)',
+                borderRadius: 'var(--radius-sm)',
+                border: `1.5px solid ${txType === btn.type ? btn.color : 'var(--border)'}`,
+                background: txType === btn.type ? `${btn.color}18` : 'transparent',
+                color: txType === btn.type ? btn.color : 'var(--text-secondary)',
+                cursor: 'pointer', fontSize: '0.85rem', fontWeight: txType === btn.type ? 600 : 500,
+                fontFamily: 'inherit', transition: 'all var(--transition)',
+              }}>
+                <span>{btn.icon}</span> {btn.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Form */}
+          <SectionCard title={TX_LABEL[txType] || 'Transaction'}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              {/* Date */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Date</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{
+                  width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                  borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                  background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                  outline: 'none', transition: 'border-color var(--transition)',
+                }} />
+              </div>
+
+              {/* Source toggle (sell only) */}
+              {txType === 'sell' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Source of Ore</label>
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                    <button onClick={() => setSaleSource('portfolio')} style={{
+                      flex: 1, padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: `1.5px solid ${saleSource === 'portfolio' ? 'var(--blue)' : 'var(--border)'}`,
+                      background: saleSource === 'portfolio' ? 'var(--blue-bg)' : 'transparent',
+                      color: saleSource === 'portfolio' ? 'var(--blue)' : 'var(--text-secondary)',
+                      cursor: 'pointer', fontSize: '0.8rem', fontWeight: saleSource === 'portfolio' ? 600 : 400,
+                      fontFamily: 'inherit', transition: 'all var(--transition)',
+                    }}>
+                      <div style={{ fontWeight: 600 }}>Portfolio</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: 1 }}>Sell bought ores</div>
+                    </button>
+                    <button onClick={() => setSaleSource('mined')} style={{
+                      flex: 1, padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: `1.5px solid ${saleSource === 'mined' ? 'var(--amber)' : 'var(--border)'}`,
+                      background: saleSource === 'mined' ? 'var(--amber-bg)' : 'transparent',
+                      color: saleSource === 'mined' ? 'var(--amber)' : 'var(--text-secondary)',
+                      cursor: 'pointer', fontSize: '0.8rem', fontWeight: saleSource === 'mined' ? 600 : 400,
+                      fontFamily: 'inherit', transition: 'all var(--transition)',
+                    }}>
+                      <div style={{ fontWeight: 600 }}>Mined</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: 1 }}>Sell mined ores</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Ore selector (for buy/sell/mine_sell) */}
+              {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>
+                    Ore {txType === 'sell' ? (saleSource === 'mined' ? '' : '(owned only)') : ''}
+                  </label>
+                  {txType === 'sell' && saleSource === 'portfolio' && availableOres.length === 0 ? (
+                    <div style={{
+                      padding: 'var(--space-md) var(--space-md)',
+                      background: 'var(--surface-hover)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.85rem', color: 'var(--text-muted)',
+                      textAlign: 'center', border: '1px dashed var(--border)',
+                    }}>
+                      No ores in portfolio. Buy some ores first before selling.
+                    </div>
+                  ) : (
+                    <select value={oreId} onChange={e => setOreId(e.target.value)} style={{
+                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      outline: 'none', cursor: 'pointer',
+                    }}>
+                      <option value="">Select an ore...</option>
+                      {['shallow', 'deep', 'nether'].map(cat =>
+                        groupedOres[cat] && groupedOres[cat].length > 0 ? (
+                          <optgroup key={cat} label={`${CATEGORY_ICONS[cat]} ${CATEGORY_LABELS[cat]}`}>
+                            {groupedOres[cat].map(o => (
+                              <option key={o.id} value={o.id}>{o.name}</option>
+                            ))}
+                          </optgroup>
+                        ) : null
+                      )}
+                    </select>
+                  )}
+                  {txType === 'sell' && oreId && saleSource === 'portfolio' && (
+                    <div style={{ marginTop: 'var(--space-xs)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Holding: {currentHolding.quantity} units · Avg cost: {formatCurrencyFull(currentHolding.avgCost)}
+                    </div>
+                  )}
+                  {txType === 'sell' && saleSource === 'mined' && (
+                    <div style={{ marginTop: 'var(--space-xs)', fontSize: '0.78rem', color: 'var(--amber)' }}>
+                      Mined ore sale — full amount is mining income
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quantity (for buy/sell/mine_sell) */}
+              {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Quantity</label>
+                  <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                    <input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="0"
+                      style={{
+                        flex: 1, padding: 'var(--space-sm) var(--space-md)',
+                        borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                        background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                        outline: 'none', MozAppearance: 'textfield',
+                      }} />
+                    {QUICK_QTY.map(q => (
+                      <button key={q} onClick={() => setQuantity(String(q))} style={{
+                        padding: 'var(--space-sm) var(--space-md)',
+                        borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                        background: 'var(--surface)', cursor: 'pointer',
+                        fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)',
+                        fontFamily: 'inherit', transition: 'all var(--transition)',
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                      >{q}</button>
+                    ))}
+                    {txType === 'sell' && oreId && (
+                      <button onClick={() => setQuantity(String(currentHolding.quantity))} style={{
+                        padding: 'var(--space-sm) var(--space-md)',
+                        borderRadius: 'var(--radius-sm)', border: '1px solid var(--blue)',
+                        background: 'var(--blue-bg)', cursor: 'pointer',
+                        fontSize: '0.8rem', fontWeight: 600, color: 'var(--blue)',
+                        fontFamily: 'inherit',
+                      }}>ALL</button>
+                    )}
+                    {txType === 'buy' && (
+                      <button onClick={() => {
+                        // ALL in buy context = set quantity field empty (user enters manually)
+                        setQuantity('');
+                      }} style={{
+                        padding: 'var(--space-sm) var(--space-md)',
+                        borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                        background: 'var(--surface)', cursor: 'pointer',
+                        fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)',
+                        fontFamily: 'inherit',
+                      }}>ALL</button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Unit Price (for buy/sell/mine_sell) */}
+              {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Unit Price</label>
+                  <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} placeholder="0.00"
+                    style={{
+                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      outline: 'none',
+                    }} />
+                </div>
+              )}
+
+              {/* Auto-calculated total (for buy/sell/mine_sell) */}
+              {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && quantity && unitPrice && (
+                <div style={{
+                  padding: 'var(--space-sm) var(--space-md)',
+                  background: 'var(--surface-hover)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                }}>
+                  Total: <span style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 600, color: txType === 'buy' ? 'var(--red)' : 'var(--green)' }}>
+                    {txType === 'buy' ? '-' : '+'}{formatCurrencyFull(Math.abs(calculatedTotal))}
+                  </span>
+                </div>
+              )}
+
+              {/* Estimated profit (sell) */}
+              {txType === 'sell' && estimatedProfit !== null && (
+                <div style={{
+                  padding: 'var(--space-sm) var(--space-md)',
+                  background: saleSource === 'mined' ? 'var(--amber-bg)' : 'var(--primary-glow)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  color: saleSource === 'mined' ? 'var(--amber)' : 'var(--primary-dark)',
+                }}>
+                  {saleSource === 'mined' ? 'Mining Income' : 'Estimated P&L'}: <span style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 600, color: estimatedProfit >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                    +{formatCurrencyFull(estimatedProfit)}
+                  </span>
+                </div>
+              )}
+
+              {/* Description (for expense) */}
+              {txType === 'expense' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Description</label>
+                  <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="What did you buy?"
+                    style={{
+                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      outline: 'none',
+                    }} />
+                </div>
+              )}
+
+              {/* Expense amount */}
+              {txType === 'expense' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Amount Spent</label>
+                  <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} placeholder="0.00"
+                    style={{
+                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      outline: 'none',
+                    }} />
+                </div>
+              )}
+
+              {/* Balance Adjust: new balance */}
+              {txType === 'balance_adjust' && (
+                <div>
+                  <div style={{
+                    padding: 'var(--space-sm) var(--space-md)',
+                    background: 'var(--surface-hover)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.85rem', color: 'var(--text-secondary)',
+                    marginBottom: 'var(--space-md)',
+                  }}>
+                    Current system balance: <span style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 600 }}>{formatCurrencyFull(ledger.summary.cash)}</span>
+                  </div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Actual Cash in Pocket</label>
+                  <input type="number" step="0.01" value={newBalance} onChange={e => setNewBalance(e.target.value)} placeholder="Enter actual cash amount"
+                    style={{
+                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      outline: 'none',
+                    }} />
+                  {adjustmentDelta !== null && (
+                    <div style={{ marginTop: 'var(--space-xs)', fontSize: '0.8rem', color: adjustmentDelta >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                      Adjustment: {adjustmentDelta >= 0 ? '+' : ''}{formatCurrencyFull(adjustmentDelta)}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Notes (all types) */}
+              {(txType !== 'expense' || true) && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Notes <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
+                  <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Add a note..."
+                    style={{
+                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      outline: 'none',
+                    }} />
+                </div>
+              )}
+
+              {/* Form error message */}
+              {formError && (
+                <div style={{
+                  padding: 'var(--space-sm) var(--space-md)',
+                  background: 'var(--red-bg)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem', color: 'var(--red)',
+                  fontWeight: 500,
+                }}>{formError}</div>
+              )}
+
+              {/* Submit button */}
+              <button onClick={handleSubmit} style={{
+                width: '100%', padding: 'var(--space-md)',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--primary)', border: 'none',
+                color: 'var(--text-inverse)', fontSize: '0.95rem', fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all var(--transition)',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-dark)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; }}
+              >
+                Record {TX_LABEL[txType] || 'Transaction'}
+              </button>
+            </div>
+          </SectionCard>
+
+          {/* Ore Reference Card */}
+          <div style={{ marginTop: 'var(--space-lg)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+            <SectionCard title="Ore Reference">
+              <div style={{ fontSize: '0.85rem' }}>
+                {['shallow', 'deep', 'nether'].map(cat => (
+                  <div key={cat} style={{ marginBottom: 'var(--space-md)' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-xs)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
+                      {CATEGORY_ICONS[cat]} {CATEGORY_LABELS[cat]}
+                    </div>
+                    {ORES.filter(o => o.category === cat).map(o => (
+                      <div key={o.id} style={{ padding: '2px 0', color: 'var(--text-secondary)' }}>{o.name}</div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+            <SectionCard title="Quick Tips">
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                <div style={{ marginBottom: 'var(--space-sm)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--green)' }}>↓ Buy/Sell</span> — Affects speculative portfolio
+                </div>
+                <div style={{ marginBottom: 'var(--space-sm)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--amber)' }}>⛏ Mine Sale</span> — Pure mining income, no portfolio impact
+                </div>
+                <div style={{ marginBottom: 'var(--space-sm)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--red)' }}>✕ Expense</span> — Record spending on non-ore items
+                </div>
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>⟳ Adjust</span> — Calibrate cash to actual in-game amount
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ====================================================
+     SECTION 12: APP COMPONENT
+     ==================================================== */
+
+  function App() {
+    const [activeNav, setActiveNav] = React.useState('dashboard');
+    const [preselectedType, setPreselectedType] = React.useState(null);
+    const ledger = useLedger();
+
+    const handleNavigate = useCallback((page, type) => {
+      setPreselectedType(type || null);
+      setActiveNav(page);
+    }, []);
+
+    const handleExport = useCallback(() => {
+      const json = Storage.exportData();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ore_ledger_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, []);
+
+    const handleClear = useCallback(() => {
+      if (window.confirm('Clear ALL data? This cannot be undone.')) {
+        Storage.clearAll();
+        window.location.reload();
+      }
+    }, []);
+
+    const pageTitle = useMemo(() => {
+      const item = NAV_ITEMS.find(n => n.id === activeNav);
+      return item ? item.label : 'Dashboard';
+    }, [activeNav]);
+
+    const renderPage = () => {
+      switch (activeNav) {
+        case 'dashboard':
+          return <DashboardPage ledger={ledger} onNavigate={handleNavigate} />;
+        case 'transactions':
+          return <TransactionsPage ledger={ledger} onNavigate={handleNavigate} />;
+        case 'portfolio':
+          return <PortfolioPage ledger={ledger} />;
+        case 'new-entry':
+          return <NewEntryPage ledger={ledger} preselectedType={preselectedType} onNavigate={handleNavigate} />;
+        default:
+          return <DashboardPage ledger={ledger} onNavigate={handleNavigate} />;
+      }
+    };
+
+    // Responsive sidebar: collapse on small screens
+    const sidebarStyles = useMemo(() => ({
+      width: 'var(--sidebar-w)',
+      '@media (max-width: 768px)': { width: 60 },
+    }), []);
+
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar activeNav={activeNav} onNavChange={(page) => handleNavigate(page)} onExport={handleExport} onClear={handleClear} />
+        <div style={{ marginLeft: 'var(--sidebar-w)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+          <TopBar title={pageTitle} cashBalance={ledger.summary.cash} />
+          {renderPage()}
+        </div>
+      </div>
+    );
+  }
+
+  /* ====================================================
+     MOUNT
+     ==================================================== */
+
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(
+    <ToastProvider>
+      <App />
+    </ToastProvider>
+  );
+</script>
+</body>
+</html>
