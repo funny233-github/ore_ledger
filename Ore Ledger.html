@@ -3,56 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ore Ledger — Minecraft Stock Market Bookkeeper</title>
+<title>Ore Ledger — Claude Style</title>
 
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 
 <style>
-  /* ----- Reset & Base ----- */
+  /* ========================================
+     RESET & BASE
+     ======================================== */
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+  /* ========================================
+     DEFAULT: DARK MODE (Claude dark theme)
+     ======================================== */
   :root {
-    /* Primary - Claude-inspired purple */
-    --primary-h: 280;
-    --primary: oklch(0.55 0.25 var(--primary-h));
-    --primary-light: oklch(0.70 0.15 var(--primary-h));
-    --primary-subtle: oklch(0.88 0.08 var(--primary-h));
-    --primary-dark: oklch(0.40 0.20 var(--primary-h));
-    --primary-glow: oklch(0.55 0.25 var(--primary-h) / 0.15);
+    /* Backgrounds — brighter dark */
+    --bg: oklch(0.175 0.007 85);
+    --bg-sidebar: oklch(0.155 0.007 85);
+    --bg-sidebar-hover: oklch(0.22 0.01 85);
+    --bg-sidebar-active: oklch(0.26 0.012 85);
 
-    /* Neutrals - warm gray */
-    --bg: oklch(0.985 0.002 280);
-    --surface: oklch(0.995 0.001 280);
-    --surface-hover: oklch(0.97 0.004 280);
-    --border: oklch(0.92 0.006 280);
-    --border-light: oklch(0.95 0.004 280);
+    --surface: oklch(0.205 0.008 85);
+    --surface-hover: oklch(0.24 0.01 85);
+    --surface-elevated: oklch(0.22 0.009 85);
+
+    --border: oklch(0.27 0.007 85);
+    --border-light: oklch(0.23 0.006 85);
+    --border-sidebar: oklch(0.21 0.008 85);
+
+    /* Accent — warm amber */
+    --accent: oklch(0.62 0.175 72);
+    --accent-light: oklch(0.72 0.12 72);
+    --accent-dark: oklch(0.50 0.175 72);
+    --accent-subtle: oklch(0.62 0.175 72 / 0.14);
+    --accent-glow: oklch(0.62 0.175 72 / 0.08);
 
     /* Text */
-    --text: oklch(0.18 0.01 280);
-    --text-secondary: oklch(0.45 0.014 280);
-    --text-muted: oklch(0.60 0.01 280);
-    --text-inverse: oklch(0.98 0.002 280);
+    --text: oklch(0.92 0.004 85);
+    --text-secondary: oklch(0.70 0.006 85);
+    --text-muted: oklch(0.52 0.005 85);
+    --text-inverse: oklch(0.12 0.008 85);
+
+    /* Sidebar text */
+    --text-sidebar: oklch(0.60 0.008 85);
+    --text-sidebar-active: oklch(0.93 0.004 85);
+    --text-sidebar-muted: oklch(0.40 0.008 85);
 
     /* Semantic */
-    --green: oklch(0.60 0.18 145);
-    --green-bg: oklch(0.60 0.18 145 / 0.10);
-    --red: oklch(0.55 0.22 30);
-    --red-bg: oklch(0.55 0.22 30 / 0.10);
-    --blue: oklch(0.55 0.20 250);
-    --blue-bg: oklch(0.55 0.20 250 / 0.10);
-    --amber: oklch(0.65 0.18 85);
-    --amber-bg: oklch(0.65 0.18 85 / 0.10);
+    --green: oklch(0.58 0.16 145);
+    --green-bg: oklch(0.58 0.16 145 / 0.12);
+    --red: oklch(0.55 0.18 30);
+    --red-bg: oklch(0.55 0.18 30 / 0.12);
+    --blue: oklch(0.53 0.16 250);
+    --blue-bg: oklch(0.53 0.16 250 / 0.12);
+    --amber: oklch(0.62 0.14 85);
+    --amber-bg: oklch(0.62 0.14 85 / 0.12);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.04);
-    --shadow-md: 0 4px 12px oklch(0 0 0 / 0.06);
-    --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.10);
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.15);
+    --shadow-md: 0 2px 8px oklch(0 0 0 / 0.2);
+    --shadow-lg: 0 8px 30px oklch(0 0 0 / 0.25);
+    --shadow-elevated: 0 4px 24px oklch(0 0 0 / 0.3);
 
     /* Radii */
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 16px;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
 
     /* Spacing */
     --space-xs: 4px;
@@ -61,51 +77,138 @@
     --space-lg: 24px;
     --space-xl: 32px;
     --space-2xl: 48px;
+    --space-3xl: 64px;
 
-    /* Transitions */
-    --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Layout */
-    --sidebar-w: 220px;
+    --transition: 180ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-spring: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    --sidebar-w: 240px;
   }
 
-  html { font-size: 15px; }
+  /* ========================================
+     LIGHT MODE OVERRIDE
+     ======================================== */
+  [data-theme="light"] {
+    --bg: oklch(0.982 0.004 85);
+    --bg-sidebar: oklch(0.155 0.008 85);
+    --bg-sidebar-hover: oklch(0.22 0.01 85);
+    --bg-sidebar-active: oklch(0.27 0.012 85);
+
+    --surface: oklch(0.998 0.002 85);
+    --surface-hover: oklch(0.97 0.006 85);
+    --surface-elevated: oklch(1 0 0);
+
+    --border: oklch(0.91 0.006 85);
+    --border-light: oklch(0.945 0.005 85);
+    --border-sidebar: oklch(0.22 0.008 85);
+
+    --accent: oklch(0.62 0.175 72);
+    --accent-light: oklch(0.74 0.11 72);
+    --accent-dark: oklch(0.48 0.17 72);
+    --accent-subtle: oklch(0.62 0.175 72 / 0.10);
+    --accent-glow: oklch(0.62 0.175 72 / 0.06);
+
+    --text: oklch(0.12 0.01 85);
+    --text-secondary: oklch(0.35 0.014 85);
+    --text-muted: oklch(0.52 0.01 85);
+    --text-inverse: oklch(0.97 0.003 85);
+
+    --text-sidebar: oklch(0.60 0.01 85);
+    --text-sidebar-active: oklch(0.95 0.004 85);
+    --text-sidebar-muted: oklch(0.40 0.006 85);
+
+    --green: oklch(0.55 0.16 145);
+    --green-bg: oklch(0.55 0.16 145 / 0.08);
+    --red: oklch(0.52 0.18 30);
+    --red-bg: oklch(0.52 0.18 30 / 0.08);
+    --blue: oklch(0.50 0.16 250);
+    --blue-bg: oklch(0.50 0.16 250 / 0.08);
+    --amber: oklch(0.60 0.15 85);
+    --amber-bg: oklch(0.60 0.15 85 / 0.08);
+
+    --shadow-sm: 0 0.5px 1.5px oklch(0 0 0 / 0.04);
+    --shadow-md: 0 2px 8px oklch(0 0 0 / 0.05);
+    --shadow-lg: 0 8px 30px oklch(0 0 0 / 0.07);
+    --shadow-elevated: 0 4px 24px oklch(0 0 0 / 0.10);
+  }
+
+  html { font-size: 16px; }
   body {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--text);
-    line-height: 1.5;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   input, select, button, textarea { font-family: inherit; font-size: inherit; }
-  a { color: var(--primary); text-decoration: none; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { opacity: 0.8; }
 
   /* ----- Scrollbar ----- */
-  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-  /* ----- Page layout ----- */
-  .page { width: 100%; }
+  /* ----- Global transitions ----- */
+  .page {
+    width: 100%;
+    animation: pageEnter 300ms ease-out;
+  }
+
+  @keyframes pageEnter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Entry animation for cards */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-enter { animation: fadeUp 350ms ease-out both; }
+  .card-enter:nth-child(1) { animation-delay: 0ms; }
+  .card-enter:nth-child(2) { animation-delay: 60ms; }
+  .card-enter:nth-child(3) { animation-delay: 120ms; }
+  .card-enter:nth-child(4) { animation-delay: 180ms; }
+
+  /* Toast animation */
+  @keyframes toastSlide {
+    from { transform: translateX(100%) translateY(-8px); opacity: 0; }
+    to { transform: translateX(0) translateY(0); opacity: 1; }
+  }
+
+  @keyframes toastSlideOut {
+    from { transform: translateX(0) translateY(0); opacity: 1; }
+    to { transform: translateX(100%) translateY(-8px); opacity: 0; }
+  }
+
+  /* Focus ring */
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* Smooth number input */
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* Selection */
+  ::selection { background: var(--accent-subtle); color: var(--accent-dark); }
 
   /* ----- Responsive ----- */
   @media (max-width: 768px) {
-    :root { --sidebar-w: 60px; }
-    .sidebar-nav-text { display: none; }
-    .sidebar-brand-sub { display: none; }
-    .sidebar-footer { display: none; }
+    :root { --sidebar-w: 64px; }
+    .sidebar-label { display: none; }
+    .sidebar-section-title { display: none; }
   }
 
   @media (max-width: 480px) {
     html { font-size: 14px; }
-  }
-
-  /* ----- Toast animation ----- */
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
   }
 </style>
 </head>
@@ -584,11 +687,13 @@
   function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
     const toastId = useRef(0);
+    const exiting = useRef(new Set());
 
     const addToast = useCallback((message, type = 'success', duration = 3000) => {
       const id = ++toastId.current;
       setToasts(prev => [...prev, { id, message, type }]);
       setTimeout(() => {
+        exiting.current.add(id);
         setToasts(prev => prev.filter(t => t.id !== id));
       }, duration);
     }, []);
@@ -597,30 +702,36 @@
       setToasts(prev => prev.filter(t => t.id !== id));
     }, []);
 
+    const colorMap = {
+      success: 'var(--green)',
+      error: 'var(--red)',
+      info: 'var(--accent)',
+    };
+
     return (
       <ToastContext.Provider value={addToast}>
         {children}
-        {/* Toast container */}
         <div style={{
-          position: 'fixed', top: 16, right: 16, zIndex: 9999,
+          position: 'fixed', top: 20, right: 20, zIndex: 9999,
           display: 'flex', flexDirection: 'column', gap: 8,
-          pointerEvents: 'none',
+          pointerEvents: 'none', alignItems: 'flex-end',
         }}>
           {toasts.map(toast => (
             <div key={toast.id} onClick={() => removeToast(toast.id)}
               style={{
-                padding: '12px 20px',
+                padding: '10px 18px',
                 borderRadius: 'var(--radius-sm)',
-                background: toast.type === 'success' ? 'var(--green)' :
-                            toast.type === 'error' ? 'var(--red)' : 'var(--primary)',
-                color: '#fff',
+                background: 'oklch(0.15 0.01 85)',
+                color: 'oklch(0.92 0.005 85)',
                 fontSize: '0.85rem',
-                fontWeight: 500,
-                boxShadow: 'var(--shadow-md)',
+                fontWeight: 480,
+                lineHeight: 1.4,
+                boxShadow: 'var(--shadow-elevated)',
                 cursor: 'pointer',
                 pointerEvents: 'auto',
-                animation: 'slideIn 200ms ease-out',
-                maxWidth: 360,
+                animation: 'toastSlide 250ms ease-out',
+                maxWidth: 380,
+                borderLeft: `3px solid ${colorMap[toast.type] || 'var(--accent)'}`,
               }}
             >
               {toast.message}
@@ -651,88 +762,139 @@
      SECTION 7: APP SHELL (Task 5)
      ==================================================== */
 
-  /* --- Sidebar --- */
-  function Sidebar({ activeNav, onNavChange, onExport, onClear }) {
+  /* --- Sidebar — Claude.ai dark sidebar style --- */
+  function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }) {
     return (
       <aside style={{
         width: 'var(--sidebar-w)',
-        background: 'var(--surface)',
-        borderRight: '1px solid var(--border)',
+        background: 'var(--bg-sidebar)',
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
         top: 0, left: 0, bottom: 0,
         zIndex: 10,
-        padding: 'var(--space-lg) 0',
+        padding: '0',
+        userSelect: 'none',
       }}>
         {/* Brand */}
-        <div style={{ padding: '0 var(--space-lg) var(--space-xl)' }}>
+        <div style={{
+          padding: '20px 20px 24px',
+          borderBottom: '1px solid var(--border-sidebar)',
+        }}>
           <div style={{
-            fontFamily: "'Sora', sans-serif",
-            fontWeight: 700,
-            fontSize: '1.25rem',
-            color: 'var(--primary)',
-            letterSpacing: '-0.02em',
+            fontFamily: "'DM Serif Display', serif",
+            fontWeight: 500,
+            fontSize: '1.3rem',
+            color: 'var(--text-sidebar-active)',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.2,
           }}>Ore Ledger</div>
-          <div className="sidebar-brand-sub" style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
+          <div className="sidebar-label" style={{
+            fontSize: '0.7rem',
+            color: 'var(--text-sidebar-muted)',
             fontWeight: 400,
-            marginTop: 2,
+            marginTop: 4,
+            letterSpacing: '0.02em',
           }}>Minecraft Stock Tracker</div>
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 var(--space-sm)' }}>
+        <nav style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          padding: '12px 10px',
+          overflowY: 'auto',
+        }}>
           {NAV_ITEMS.map(item => (
             <button key={item.id}
               onClick={() => onNavChange(item.id)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--space-md)',
-                padding: 'var(--space-sm) var(--space-md)',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '10px 12px',
                 borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer', fontSize: '0.9rem', fontWeight: activeNav === item.id ? 600 : 500,
-                color: activeNav === item.id ? 'var(--primary-dark)' : 'var(--text-secondary)',
-                background: activeNav === item.id ? 'var(--primary-glow)' : 'none',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: activeNav === item.id ? 650 : 520,
+                color: activeNav === item.id ? 'var(--text-sidebar-active)' : 'var(--text-sidebar)',
+                background: activeNav === item.id ? 'var(--bg-sidebar-active)' : 'transparent',
                 border: 'none', textAlign: 'left', width: '100%', lineHeight: 1.4,
                 transition: 'all var(--transition)',
               }}
-              onMouseEnter={e => { if (activeNav !== item.id) e.currentTarget.style.background = 'var(--surface-hover)'; }}
-              onMouseLeave={e => { if (activeNav !== item.id) e.currentTarget.style.background = 'none'; }}
+              onMouseEnter={e => {
+                if (activeNav !== item.id)
+                  e.currentTarget.style.background = 'var(--bg-sidebar-hover)';
+              }}
+              onMouseLeave={e => {
+                if (activeNav !== item.id)
+                  e.currentTarget.style.background = 'transparent';
+              }}
             >
-              <span style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', opacity: activeNav === item.id ? 1 : 0.8 }}>{item.icon}</span>
-              <span className="sidebar-nav-text" style={{ fontSize: '0.9rem' }}>{item.label}</span>
+              <span style={{
+                width: 22, height: 22,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1rem',
+                opacity: activeNav === item.id ? 1 : 0.5,
+                color: activeNav === item.id ? 'var(--accent)' : 'var(--text-sidebar)',
+                flexShrink: 0,
+              }}>{item.icon}</span>
+              <span className="sidebar-label" style={{ fontSize: '0.95rem', fontWeight: 520 }}>{item.label}</span>
             </button>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="sidebar-footer" style={{ padding: 'var(--space-md) var(--space-lg) 0', borderTop: '1px solid var(--border)', marginTop: 'auto', paddingTop: 'var(--space-md)' }}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: 'var(--space-sm)' }}>
-            Ore Ledger v0.1
+        <div className="sidebar-label" style={{
+          padding: '16px 20px',
+          borderTop: '1px solid var(--border-sidebar)',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            color: 'var(--text-sidebar-muted)',
+            letterSpacing: '0.03em',
+            marginBottom: 10,
+          }}>
+            <span>Ore Ledger v0.1</span>
+            <button onClick={onToggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{
+                background: 'none', border: '1px solid var(--border-sidebar)',
+                cursor: 'pointer', padding: '3px 8px',
+                fontSize: '0.7rem', color: 'var(--text-sidebar-muted)',
+                fontFamily: 'inherit', borderRadius: 'var(--radius-sm)',
+                transition: 'all var(--transition)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-light)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-sidebar)'; e.currentTarget.style.color = 'var(--text-sidebar-muted)'; }}
+            >{theme === 'dark' ? '☀ Light' : '☾ Dark'}</button>
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={onExport} title="Export data as JSON"
               style={{
-                flex: 1, padding: 'var(--space-xs) var(--space-sm)',
-                borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                background: 'none', cursor: 'pointer',
-                fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'inherit',
-                transition: 'all var(--transition)', fontWeight: 500,
+                flex: 1, padding: '6px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-sidebar)',
+                background: 'transparent', cursor: 'pointer',
+                fontSize: '0.78rem', color: 'var(--text-sidebar-muted)',
+                fontFamily: 'inherit',
+                transition: 'all var(--transition)', fontWeight: 480,
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-light)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-sidebar)'; e.currentTarget.style.color = 'var(--text-sidebar-muted)'; }}
             >Export</button>
             <button onClick={onClear} title="Clear all data"
               style={{
-                flex: 1, padding: 'var(--space-xs) var(--space-sm)',
-                borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                background: 'none', cursor: 'pointer',
-                fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'inherit',
-                transition: 'all var(--transition)', fontWeight: 500,
+                flex: 1, padding: '6px 10px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-sidebar)',
+                background: 'transparent', cursor: 'pointer',
+                fontSize: '0.78rem', color: 'var(--text-sidebar-muted)',
+                fontFamily: 'inherit',
+                transition: 'all var(--transition)', fontWeight: 480,
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-sidebar)'; e.currentTarget.style.color = 'var(--text-sidebar-muted)'; }}
             >Clear</button>
           </div>
         </div>
@@ -740,42 +902,47 @@
     );
   }
 
-  /* --- Top Bar --- */
+  /* --- Top Bar — claude.ai minimal header --- */
   function TopBar({ title, cashBalance }) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: 'var(--space-md) var(--space-xl)',
+        padding: '14px var(--space-xl)',
         borderBottom: '1px solid var(--border-light)',
-        background: 'var(--surface)',
-        backdropFilter: 'blur(12px)',
+        background: 'var(--bg)',
         position: 'sticky', top: 0, zIndex: 5,
       }}>
         <div style={{
-          fontFamily: "'Sora', sans-serif",
-          fontWeight: 600, fontSize: '1.1rem', color: 'var(--text)',
+          fontFamily: "'Instrument Sans', sans-serif",
+          fontWeight: 620, fontSize: '1.05rem', color: 'var(--text-secondary)',
+          letterSpacing: '0.01em',
         }}>{title}</div>
 
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
-          padding: 'var(--space-xs) var(--space-md)',
-          background: 'var(--primary-glow)',
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '6px 14px',
+          background: 'var(--accent-glow)',
           borderRadius: 'var(--radius-sm)',
-          fontFamily: "'Space Grotesk', monospace",
-          fontWeight: 600, fontSize: '0.95rem', color: 'var(--primary-dark)',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 660, fontSize: '1rem', color: 'var(--accent-dark)',
         }}>
-          <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cash</span>
-          <span>{formatCurrencyFull(cashBalance)}</span>
+          <span style={{
+            fontFamily: "'Instrument Sans', sans-serif",
+            fontWeight: 560, fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>Cash</span>
+          <span style={{ fontSize: '1.1rem', fontWeight: 660 }}>{formatCurrencyFull(cashBalance)}</span>
         </div>
       </div>
     );
   }
 
-  /* --- Summary Card --- */
+  /* --- Summary Card — clean, minimal card --- */
   function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
     const colorMap = { positive: 'var(--green)', negative: 'var(--red)', neutral: 'var(--text)' };
     return (
-      <div style={{
+      <div className="card-enter" style={{
         background: 'var(--surface)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-md)',
@@ -783,26 +950,40 @@
         transition: 'all var(--transition)',
         cursor: 'default',
       }}
-        onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--primary-subtle)'; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+        onMouseEnter={e => {
+          e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+          e.currentTarget.style.borderColor = 'var(--accent-subtle)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.boxShadow = 'none';
+          e.currentTarget.style.borderColor = 'var(--border)';
+        }}
       >
-        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-sm)' }}>{label}</div>
-        <div style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 700, fontSize: '1.6rem', letterSpacing: '-0.02em', color: colorMap[typeVariant] }}>{value}</div>
-        {sub && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 'var(--space-xs)' }}>{sub}</div>}
+        <div style={{
+          fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em',
+          color: 'var(--text-muted)', fontWeight: 650, marginBottom: 10,
+        }}>{label}</div>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 720, fontSize: '2rem',
+          letterSpacing: '-0.03em',
+          color: colorMap[typeVariant],
+        }}>{value}</div>
+        {sub && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 6, fontWeight: 550 }}>{sub}</div>}
       </div>
     );
   }
 
-  /* --- Transaction Item --- */
+  /* --- Transaction Item — refined row --- */
   const TX_VISUAL = {
     buy:           { icon: '↓', cls: 'buy',    color: 'var(--green)' },
     sell:          { icon: '↑', cls: 'sell',   color: 'var(--blue)' },
     mine_sell:     { icon: '⛏', cls: 'mine',   color: 'var(--amber)' },
     expense:       { icon: '✕', cls: 'expense', color: 'var(--red)' },
-    balance_adjust: { icon: '⟳', cls: 'adjust', color: 'var(--primary)' },
+    balance_adjust: { icon: '⟳', cls: 'adjust', color: 'var(--accent)' },
   };
 
-  const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--primary-glow)' };
+  const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--accent-glow)' };
 
   const TX_LABEL = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust' };
 
@@ -831,27 +1012,30 @@
 
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 'var(--space-md)',
-        padding: 'var(--space-md) 0',
+        display: 'flex', alignItems: 'center', gap: '14px',
+        padding: '12px 0',
         borderBottom: '1px solid var(--border-light)',
         transition: 'background var(--transition)',
+        borderRadius: 'var(--radius-sm)',
+        margin: '0 -4px',
+        padding: '10px 4px',
       }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hover)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
       >
         <div style={{
-          width: 36, height: 36, borderRadius: 'var(--radius-sm)',
+          width: 32, height: 32, borderRadius: 'var(--radius-sm)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '0.9rem', flexShrink: 0,
+          fontSize: '0.85rem', flexShrink: 0,
           background: bg, color: vis.color,
         }}>{vis.icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 500, fontSize: '0.9rem', color: 'var(--text)' }}>{name}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>{metaParts.join(' · ')}</div>
+          <div style={{ fontWeight: 620, fontSize: '1rem', color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2, fontWeight: 520 }}>{metaParts.join(' · ')}</div>
         </div>
         <div style={{
-          fontFamily: "'Space Grotesk', monospace",
-          fontWeight: 600, fontSize: '0.95rem',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 650, fontSize: '1.05rem',
           textAlign: 'right', whiteSpace: 'nowrap',
           color: isPositiveAmount ? 'var(--green)' : 'var(--red)',
         }}>{displayAmount}</div>
@@ -860,12 +1044,12 @@
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '4px 8px', borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-muted)', fontSize: '0.8rem',
+              color: 'var(--text-muted)', fontSize: '0.75rem',
               transition: 'all var(--transition)', flexShrink: 0,
-              fontFamily: 'inherit',
+              fontFamily: 'inherit', opacity: 0.5,
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--red-bg)'; e.currentTarget.style.color = 'var(--red)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--red-bg)'; e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.opacity = 1; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.opacity = 0.5; }}
           >✕</button>
         )}
       </div>
@@ -876,26 +1060,37 @@
   function QuickActionBtn({ icon, label, color, onClick }) {
     return (
       <button onClick={onClick} style={{
-        display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
-        padding: 'var(--space-md) var(--space-lg)',
-        borderRadius: 'var(--radius-md)',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '12px 22px',
+        borderRadius: 'var(--radius-sm)',
         background: 'var(--surface)',
-        border: `1px solid var(--border)`,
+        border: '1px solid var(--border)',
         cursor: 'pointer',
-        transition: 'all var(--transition)',
-        fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)',
+        transition: 'all 200ms cubic-bezier(0.25, 0.1, 0.25, 1)',
+        fontSize: '0.95rem', fontWeight: 620, color: 'var(--text-secondary)',
         fontFamily: 'inherit',
+        lineHeight: 1,
       }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.color = color; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.boxShadow = 'none'; }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = color;
+          e.currentTarget.style.color = color;
+          e.currentTarget.style.background = `${color}08`;
+          e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'var(--border)';
+          e.currentTarget.style.color = 'var(--text-secondary)';
+          e.currentTarget.style.background = 'var(--surface)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
       >
-        <span style={{ fontSize: '1.1rem', color }}>{icon}</span>
+        <span style={{ fontSize: '1rem', color, lineHeight: 1 }}>{icon}</span>
         {label}
       </button>
     );
   }
 
-  /* --- Section Card --- */
+  /* --- Section Card — minimal card container --- */
   function SectionCard({ title, children, headerRight }) {
     return (
       <div style={{
@@ -903,16 +1098,21 @@
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-md)',
         overflow: 'hidden',
+        transition: 'box-shadow var(--transition)',
       }}>
         <div style={{
-          padding: 'var(--space-md) var(--space-lg)',
+          padding: '14px 20px',
           borderBottom: '1px solid var(--border-light)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <h2 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '0.95rem', color: 'var(--text)' }}>{title}</h2>
+          <h2 style={{
+            fontFamily: "'Instrument Sans', sans-serif",
+            fontWeight: 650, fontSize: '1rem', color: 'var(--text)',
+            letterSpacing: '0.01em',
+          }}>{title}</h2>
           {headerRight}
         </div>
-        <div style={{ padding: 'var(--space-lg)' }}>
+        <div style={{ padding: '16px 20px' }}>
           {children}
         </div>
       </div>
@@ -928,22 +1128,36 @@
 
     return (
       <div className="page">
-        <div style={{ marginBottom: 'var(--space-xl)', maxWidth: 1200, margin: '0 auto', padding: 'var(--space-xl)' }}>
+        <div style={{ maxWidth: 1120, margin: '0 auto', padding: 'var(--space-xl) var(--space-xl) var(--space-3xl)' }}>
+          {/* Page header */}
           <div style={{ marginBottom: 'var(--space-xl)' }}>
-            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>Dashboard</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Overview of your ore stock market activity</p>
+            <h1 style={{
+              fontFamily: "'Instrument Sans', sans-serif",
+              fontWeight: 720, fontSize: '1.65rem',
+              color: 'var(--text)', letterSpacing: '-0.015em',
+            }}>Dashboard</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
+              Overview of your ore stock market activity
+            </p>
           </div>
 
           {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+            gap: 'var(--space-md)',
+            marginBottom: 28,
+          }}>
             <SummaryCard label="Cash Balance" value={formatCurrencyFull(summary.cash)} sub="Available funds" />
-            <SummaryCard label="Speculative Profit" value={`+${formatCurrencyFull(summary.speculativeProfit)}`} typeVariant={summary.speculativeProfit >= 0 ? 'positive' : 'negative'} sub="Gains from trading" />
+            <SummaryCard label="Speculative P&L" value={`${summary.speculativeProfit >= 0 ? '+' : ''}${formatCurrencyFull(summary.speculativeProfit)}`} typeVariant={summary.speculativeProfit >= 0 ? 'positive' : 'negative'} sub="Gains from trading" />
             <SummaryCard label="Mining Income" value={`+${formatCurrencyFull(summary.miningIncome)}`} typeVariant="positive" sub="From selling mined ores" />
             <SummaryCard label="Portfolio Value" value={formatCurrencyFull(summary.portfolioValue)} sub={`${summary.totalHoldings} items across ores`} />
           </div>
 
           {/* Quick Actions */}
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap',
+          }}>
             <QuickActionBtn icon="↓" label="Buy Ore" color="var(--green)" onClick={() => onNavigate('new-entry', 'buy')} />
             <QuickActionBtn icon="↑" label="Sell Ore" color="var(--blue)" onClick={() => onNavigate('new-entry', 'sell')} />
             <QuickActionBtn icon="⛏" label="Mine Sale" color="var(--amber)" onClick={() => onNavigate('new-entry', 'mine_sell')} />
@@ -953,20 +1167,20 @@
           {/* Recent Transactions */}
           <SectionCard title="Recent Transactions" headerRight={
             <button onClick={() => onNavigate('transactions')} style={{
-              padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-sm)',
+              padding: '6px 14px', borderRadius: 'var(--radius-sm)',
               background: 'none', border: '1px solid var(--border)', cursor: 'pointer',
-              fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'inherit', fontWeight: 500,
+ fontSize: '0.88rem', color: 'var(--text-muted)', fontFamily: 'inherit', fontWeight: 560,
               transition: 'all var(--transition)',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hover)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
             >View All</button>
           }>
             {recentTransactions.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-md)', opacity: 0.4 }}>◈</div>
-                <h3 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-xs)' }}>No transactions yet</h3>
-                <p style={{ fontSize: '0.85rem' }}>Record your first transaction to get started</p>
+                <div style={{ fontSize: '2rem', marginBottom: 14, opacity: 0.25, fontFamily: "'DM Serif Display', serif", color: 'var(--text-secondary)' }}>O</div>
+                <h3 style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 540, fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 4 }}>No transactions yet</h3>
+                <p style={{ fontSize: '0.95rem', fontWeight: 520 }}>Record your first transaction to get started</p>
               </div>
             ) : (
               <div>{recentTransactions.map(tx => (
@@ -994,23 +1208,31 @@
 
     return (
       <div className="page">
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-xl)' }}>
-          <div style={{ marginBottom: 'var(--space-xl)' }}>
-            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>Transactions</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Complete history of all your financial activities</p>
+        <div style={{ maxWidth: 1120, margin: '0 auto', padding: 'var(--space-xl) var(--space-xl) var(--space-3xl)' }}>
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{
+              fontFamily: "'Instrument Sans', sans-serif",
+              fontWeight: 720, fontSize: '1.65rem',
+              color: 'var(--text)', letterSpacing: '-0.015em',
+            }}>Transactions</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
+              Complete history of all your financial activities
+            </p>
           </div>
 
-          {/* Filter */}
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Filter:</label>
+          {/* Filter chips */}
+          <div style={{
+            display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center',
+          }}>
             {['all', 'buy', 'sell', 'mine_sell', 'expense', 'balance_adjust'].map(type => (
               <button key={type} onClick={() => setFilterType(type)} style={{
-                padding: 'var(--space-xs) var(--space-md)',
+                padding: '5px 14px',
                 borderRadius: 'var(--radius-sm)',
-                border: `1px solid ${filterType === type ? 'var(--primary)' : 'var(--border)'}`,
-                background: filterType === type ? 'var(--primary-glow)' : 'transparent',
-                color: filterType === type ? 'var(--primary-dark)' : 'var(--text-secondary)',
-                cursor: 'pointer', fontSize: '0.8rem', fontWeight: filterType === type ? 600 : 400,
+                border: '1px solid',
+                borderColor: filterType === type ? 'var(--accent)' : 'var(--border)',
+                background: filterType === type ? 'var(--accent-subtle)' : 'transparent',
+                color: filterType === type ? 'var(--accent-dark)' : 'var(--text-secondary)',
+                cursor: 'pointer',                 fontSize: '0.88rem', fontWeight: filterType === type ? 620 : 500,
                 fontFamily: 'inherit', transition: 'all var(--transition)',
               }}>
                 {TX_LABEL[type] || type}
@@ -1019,22 +1241,25 @@
           </div>
 
           {/* Transaction List */}
-          <SectionCard title={`All Transactions · ${filtered.length}`} headerRight={
+          <SectionCard title={`All Transactions${filterType !== 'all' ? ` · ${TX_LABEL[filterType]}` : ''} · ${filtered.length}`} headerRight={
             <button onClick={() => onNavigate('new-entry')} style={{
-              padding: 'var(--space-sm) var(--space-md)', borderRadius: 'var(--radius-sm)',
-              background: 'var(--primary)', border: 'none', cursor: 'pointer',
-              fontSize: '0.8rem', color: 'var(--text-inverse)', fontFamily: 'inherit', fontWeight: 500,
+              padding: '6px 14px', borderRadius: 'var(--radius-sm)',
+              background: 'var(--accent)', border: 'none', cursor: 'pointer',
+              fontSize: '0.9rem', color: '#fff', fontFamily: 'inherit', fontWeight: 620,
               transition: 'all var(--transition)',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-dark)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-dark)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; }}
             >+ New Entry</button>
           }>
             {filtered.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-md)', opacity: 0.4 }}>↕</div>
-                <h3 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-xs)' }}>No transactions found</h3>
-                <p style={{ fontSize: '0.85rem' }}>
+                <div style={{
+                  fontSize: '1.8rem', marginBottom: 14, opacity: 0.2,
+                  fontFamily: "'DM Serif Display', serif", color: 'var(--text-secondary)',
+                }}>∅</div>
+                <h3 style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 540, fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 4 }}>No transactions found</h3>
+                <p style={{ fontSize: '0.82rem' }}>
                   {filterType === 'all' ? 'Record your first transaction to get started' : `No ${TX_LABEL[filterType]?.toLowerCase()} transactions yet`}
                 </p>
               </div>
@@ -1063,14 +1288,20 @@
 
     return (
       <div className="page">
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--space-xl)' }}>
-          <div style={{ marginBottom: 'var(--space-xl)' }}>
-            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>Portfolio</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Your current ore holdings and cost basis</p>
+        <div style={{ maxWidth: 1120, margin: '0 auto', padding: 'var(--space-xl) var(--space-xl) var(--space-3xl)' }}>
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{
+              fontFamily: "'Instrument Sans', sans-serif",
+              fontWeight: 720, fontSize: '1.65rem',
+              color: 'var(--text)', letterSpacing: '-0.015em',
+            }}>Portfolio</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
+              Your current ore holdings and cost basis
+            </p>
           </div>
 
           {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--space-md)', marginBottom: 28 }}>
             <SummaryCard label="Total Holdings" value={`${summary.totalHoldings} items`} sub="Across all ores" />
             <SummaryCard label="Portfolio Value" value={formatCurrencyFull(totalValue)} sub={`Cost basis: ${formatCurrencyFull(totalCost)}`} />
             <SummaryCard
@@ -1085,23 +1316,26 @@
           <SectionCard title="Holdings">
             {activePortfolio.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-md)', opacity: 0.4 }}>⊞</div>
-                <h3 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-xs)' }}>No holdings yet</h3>
-                <p style={{ fontSize: '0.85rem' }}>Buy some ores to start building your portfolio</p>
+                <div style={{
+                  fontSize: '1.8rem', marginBottom: 14, opacity: 0.2,
+                  fontFamily: "'DM Serif Display', serif", color: 'var(--text-secondary)',
+                }}>∅</div>
+                <h3 style={{ fontFamily: "'Instrument Sans', sans-serif", fontWeight: 540, fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 4 }}>No holdings yet</h3>
+                <p style={{ fontSize: '0.95rem', fontWeight: 520 }}>Buy some ores to start building your portfolio</p>
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      {['Ore', 'Quantity', 'Avg Cost', 'Total Cost', 'Current Value', 'P&L'].map(h => (
-                        <th key={h} style={{
-                          textAlign: h === 'Ore' ? 'left' : 'right',
-                          fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em',
-                          color: 'var(--text-muted)', fontWeight: 600,
-                          padding: 'var(--space-sm) var(--space-md)',
-                          borderBottom: '1px solid var(--border)',
-                        }}>{h}</th>
+                      {['Ore', 'Quantity', 'Avg Cost', 'Total Cost', 'Value', 'P&L'].map(h => (
+                          <th key={h} style={{
+                            textAlign: h === 'Ore' ? 'left' : 'right',
+                            fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.06em',
+                            color: 'var(--text-muted)', fontWeight: 650,
+                            padding: '12px 16px',
+                            borderBottom: '1px solid var(--border)',
+                          }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1110,14 +1344,14 @@
                       const pnl = p.currentValue - p.totalCost;
                       return (
                         <tr key={p.id}>
-                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontWeight: 500, borderBottom: '1px solid var(--border-light)' }}>{p.name}</td>
-                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{p.quantity}</td>
-                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.avgCost)}</td>
-                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.totalCost)}</td>
-                          <td style={{ padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem', fontFamily: "'Space Grotesk', monospace", fontWeight: 500, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.currentValue)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '1rem', fontWeight: 620, borderBottom: '1px solid var(--border-light)' }}>{p.name}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{p.quantity}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.avgCost)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.totalCost)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.currentValue)}</td>
                           <td style={{
-                            padding: 'var(--space-sm) var(--space-md)', fontSize: '0.9rem',
-                            fontFamily: "'Space Grotesk', monospace", fontWeight: 500,
+                            padding: '12px 16px', fontSize: '1rem',
+                            fontFamily: "'JetBrains Mono', monospace", fontWeight: 580,
                             textAlign: 'right', borderBottom: '1px solid var(--border-light)',
                             color: pnl >= 0 ? 'var(--green)' : 'var(--red)',
                           }}>{pnl >= 0 ? '+' : ''}{formatCurrencyFull(pnl)}</td>
@@ -1130,9 +1364,8 @@
             )}
           </SectionCard>
 
-          {/* Note */}
           {activePortfolio.length > 0 && (
-            <div style={{ marginTop: 'var(--space-md)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            <div style={{ marginTop: 14, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               * Current values shown at average cost (no real-time pricing).
             </div>
           )}
@@ -1324,59 +1557,76 @@
 
     return (
       <div className="page">
-        <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--space-xl)' }}>
-          <div style={{ marginBottom: 'var(--space-xl)' }}>
-            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: '1.6rem', color: 'var(--text)', letterSpacing: '-0.02em' }}>New Entry</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: 'var(--space-xs)' }}>Record a new transaction or activity</p>
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--space-xl) var(--space-xl) var(--space-3xl)' }}>
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{
+              fontFamily: "'Instrument Sans', sans-serif",
+              fontWeight: 720, fontSize: '1.65rem',
+              color: 'var(--text)', letterSpacing: '-0.015em',
+            }}>New Entry</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
+              Record a new transaction or activity
+            </p>
           </div>
 
-          {/* Type selector */}
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-xl)', flexWrap: 'wrap' }}>
+          {/* Type selector — pill-style */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
             {[
               { type: 'buy', icon: '↓', label: 'Buy', color: 'var(--green)' },
               { type: 'sell', icon: '↑', label: 'Sell', color: 'var(--blue)' },
               { type: 'mine_sell', icon: '⛏', label: 'Mine Sale', color: 'var(--amber)' },
               { type: 'expense', icon: '✕', label: 'Expense', color: 'var(--red)' },
-              { type: 'balance_adjust', icon: '⟳', label: 'Adjust', color: 'var(--primary)' },
+              { type: 'balance_adjust', icon: '⟳', label: 'Adjust', color: 'var(--accent)' },
             ].map(btn => (
               <button key={btn.type} onClick={() => setTxType(btn.type)} style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
-                padding: 'var(--space-sm) var(--space-md)',
+                display: 'flex', alignItems: 'center', gap: '7px',
+                padding: '8px 16px',
                 borderRadius: 'var(--radius-sm)',
-                border: `1.5px solid ${txType === btn.type ? btn.color : 'var(--border)'}`,
-                background: txType === btn.type ? `${btn.color}18` : 'transparent',
+                border: '1px solid',
+                borderColor: txType === btn.type ? btn.color : 'var(--border)',
+                background: txType === btn.type ? `${btn.color}12` : 'transparent',
                 color: txType === btn.type ? btn.color : 'var(--text-secondary)',
-                cursor: 'pointer', fontSize: '0.85rem', fontWeight: txType === btn.type ? 600 : 500,
+                cursor: 'pointer', fontSize: '0.95rem',
+                fontWeight: txType === btn.type ? 580 : 500,
                 fontFamily: 'inherit', transition: 'all var(--transition)',
               }}>
-                <span>{btn.icon}</span> {btn.label}
+                <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{btn.icon}</span>
+                <span>{btn.label}</span>
               </button>
             ))}
           </div>
 
           {/* Form */}
           <SectionCard title={TX_LABEL[txType] || 'Transaction'}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Date */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Date</label>
+                <label style={{
+                  display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                  fontWeight: 530, marginBottom: 6, letterSpacing: '0.01em',
+                }}>Date</label>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{
-                  width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                  width: '100%', padding: '9px 14px',
                   borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                  background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                  background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
                   outline: 'none', transition: 'border-color var(--transition)',
+                  fontFamily: "'Instrument Sans', sans-serif",
                 }} />
               </div>
 
               {/* Source toggle (sell only) */}
               {txType === 'sell' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Source of Ore</label>
-                  <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                    fontWeight: 530, marginBottom: 6,
+                  }}>Source of Ore</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => setSaleSource('portfolio')} style={{
-                      flex: 1, padding: 'var(--space-sm) var(--space-md)',
+                      flex: 1, padding: '10px 14px',
                       borderRadius: 'var(--radius-sm)',
-                      border: `1.5px solid ${saleSource === 'portfolio' ? 'var(--blue)' : 'var(--border)'}`,
+                      border: '1.5px solid',
+                      borderColor: saleSource === 'portfolio' ? 'var(--blue)' : 'var(--border)',
                       background: saleSource === 'portfolio' ? 'var(--blue-bg)' : 'transparent',
                       color: saleSource === 'portfolio' ? 'var(--blue)' : 'var(--text-secondary)',
                       cursor: 'pointer', fontSize: '0.8rem', fontWeight: saleSource === 'portfolio' ? 600 : 400,
@@ -1404,25 +1654,29 @@
               {/* Ore selector (for buy/sell/mine_sell) */}
               {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                    fontWeight: 530, marginBottom: 6,
+                  }}>
                     Ore {txType === 'sell' ? (saleSource === 'mined' ? '' : '(owned only)') : ''}
                   </label>
                   {txType === 'sell' && saleSource === 'portfolio' && availableOres.length === 0 ? (
                     <div style={{
-                      padding: 'var(--space-md) var(--space-md)',
+                      padding: '14px 14px',
                       background: 'var(--surface-hover)',
                       borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.85rem', color: 'var(--text-muted)',
+                      fontSize: '0.82rem', color: 'var(--text-muted)',
                       textAlign: 'center', border: '1px dashed var(--border)',
                     }}>
                       No ores in portfolio. Buy some ores first before selling.
                     </div>
                   ) : (
                     <select value={oreId} onChange={e => setOreId(e.target.value)} style={{
-                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      width: '100%', padding: '9px 14px',
                       borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
                       outline: 'none', cursor: 'pointer',
+                      fontFamily: "'Instrument Sans', sans-serif",
                     }}>
                       <option value="">Select an ore...</option>
                       {['shallow', 'deep', 'nether'].map(cat =>
@@ -1437,12 +1691,12 @@
                     </select>
                   )}
                   {txType === 'sell' && oreId && saleSource === 'portfolio' && (
-                    <div style={{ marginTop: 'var(--space-xs)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       Holding: {currentHolding.quantity} units · Avg cost: {formatCurrencyFull(currentHolding.avgCost)}
                     </div>
                   )}
                   {txType === 'sell' && saleSource === 'mined' && (
-                    <div style={{ marginTop: 'var(--space-xs)', fontSize: '0.78rem', color: 'var(--amber)' }}>
+                    <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--amber)' }}>
                       Mined ore sale — full amount is mining income
                     </div>
                   )}
@@ -1452,45 +1706,36 @@
               {/* Quantity (for buy/sell/mine_sell) */}
               {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Quantity</label>
-                  <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                    fontWeight: 530, marginBottom: 6,
+                  }}>Quantity</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="0"
                       style={{
-                        flex: 1, padding: 'var(--space-sm) var(--space-md)',
+                        flex: 1, padding: '9px 14px',
                         borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                        background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
-                        outline: 'none', MozAppearance: 'textfield',
+                        background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
+                        outline: 'none',
                       }} />
                     {QUICK_QTY.map(q => (
                       <button key={q} onClick={() => setQuantity(String(q))} style={{
-                        padding: 'var(--space-sm) var(--space-md)',
+                        padding: '9px 14px',
                         borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
                         background: 'var(--surface)', cursor: 'pointer',
-                        fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)',
+                        fontSize: '0.9rem', fontWeight: 520, color: 'var(--text-muted)',
                         fontFamily: 'inherit', transition: 'all var(--transition)',
                       }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                       >{q}</button>
                     ))}
                     {txType === 'sell' && oreId && (
                       <button onClick={() => setQuantity(String(currentHolding.quantity))} style={{
-                        padding: 'var(--space-sm) var(--space-md)',
+                        padding: '9px 14px',
                         borderRadius: 'var(--radius-sm)', border: '1px solid var(--blue)',
                         background: 'var(--blue-bg)', cursor: 'pointer',
-                        fontSize: '0.8rem', fontWeight: 600, color: 'var(--blue)',
-                        fontFamily: 'inherit',
-                      }}>ALL</button>
-                    )}
-                    {txType === 'buy' && (
-                      <button onClick={() => {
-                        // ALL in buy context = set quantity field empty (user enters manually)
-                        setQuantity('');
-                      }} style={{
-                        padding: 'var(--space-sm) var(--space-md)',
-                        borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                        background: 'var(--surface)', cursor: 'pointer',
-                        fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)',
+                        fontSize: '0.78rem', fontWeight: 550, color: 'var(--blue)',
                         fontFamily: 'inherit',
                       }}>ALL</button>
                     )}
@@ -1501,27 +1746,30 @@
               {/* Unit Price (for buy/sell/mine_sell) */}
               {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Unit Price</label>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                    fontWeight: 530, marginBottom: 6,
+                  }}>Unit Price</label>
                   <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} placeholder="0.00"
                     style={{
-                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      width: '100%', padding: '9px 14px',
                       borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
                       outline: 'none',
                     }} />
                 </div>
               )}
 
-              {/* Auto-calculated total (for buy/sell/mine_sell) */}
+              {/* Auto-calculated total */}
               {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && quantity && unitPrice && (
                 <div style={{
-                  padding: 'var(--space-sm) var(--space-md)',
+                  padding: '10px 14px',
                   background: 'var(--surface-hover)',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   color: 'var(--text-secondary)',
                 }}>
-                  Total: <span style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 600, color: txType === 'buy' ? 'var(--red)' : 'var(--green)' }}>
+                  Total: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550, color: txType === 'buy' ? 'var(--red)' : 'var(--green)' }}>
                     {txType === 'buy' ? '-' : '+'}{formatCurrencyFull(Math.abs(calculatedTotal))}
                   </span>
                 </div>
@@ -1530,13 +1778,13 @@
               {/* Estimated profit (sell) */}
               {txType === 'sell' && estimatedProfit !== null && (
                 <div style={{
-                  padding: 'var(--space-sm) var(--space-md)',
-                  background: saleSource === 'mined' ? 'var(--amber-bg)' : 'var(--primary-glow)',
+                  padding: '10px 14px',
+                  background: saleSource === 'mined' ? 'var(--amber-bg)' : 'var(--accent-glow)',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.85rem',
-                  color: saleSource === 'mined' ? 'var(--amber)' : 'var(--primary-dark)',
+                  fontSize: '0.82rem',
+                  color: saleSource === 'mined' ? 'var(--amber)' : 'var(--accent-dark)',
                 }}>
-                  {saleSource === 'mined' ? 'Mining Income' : 'Estimated P&L'}: <span style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 600, color: estimatedProfit >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                  {saleSource === 'mined' ? 'Mining Income' : 'Estimated P&L'}: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550, color: estimatedProfit >= 0 ? 'var(--green)' : 'var(--red)' }}>
                     +{formatCurrencyFull(estimatedProfit)}
                   </span>
                 </div>
@@ -1545,12 +1793,15 @@
               {/* Description (for expense) */}
               {txType === 'expense' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Description</label>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                    fontWeight: 530, marginBottom: 6,
+                  }}>Description</label>
                   <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="What did you buy?"
                     style={{
-                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      width: '100%', padding: '9px 14px',
                       borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
                       outline: 'none',
                     }} />
                 </div>
@@ -1559,12 +1810,15 @@
               {/* Expense amount */}
               {txType === 'expense' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Amount Spent</label>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                    fontWeight: 530, marginBottom: 6,
+                  }}>Amount Spent</label>
                   <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} placeholder="0.00"
                     style={{
-                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      width: '100%', padding: '9px 14px',
                       borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
                       outline: 'none',
                     }} />
                 </div>
@@ -1574,102 +1828,104 @@
               {txType === 'balance_adjust' && (
                 <div>
                   <div style={{
-                    padding: 'var(--space-sm) var(--space-md)',
+                    padding: '10px 14px',
                     background: 'var(--surface-hover)',
                     borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.85rem', color: 'var(--text-secondary)',
-                    marginBottom: 'var(--space-md)',
+                    fontSize: '0.82rem', color: 'var(--text-secondary)',
+                    marginBottom: 14,
                   }}>
-                    Current system balance: <span style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 600 }}>{formatCurrencyFull(ledger.summary.cash)}</span>
+                    Current system balance: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550 }}>{formatCurrencyFull(ledger.summary.cash)}</span>
                   </div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Actual Cash in Pocket</label>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                    fontWeight: 530, marginBottom: 6,
+                  }}>Actual Cash in Pocket</label>
                   <input type="number" step="0.01" value={newBalance} onChange={e => setNewBalance(e.target.value)} placeholder="Enter actual cash amount"
                     style={{
-                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
+                      width: '100%', padding: '9px 14px',
                       borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
+                      background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
                       outline: 'none',
                     }} />
                   {adjustmentDelta !== null && (
-                    <div style={{ marginTop: 'var(--space-xs)', fontSize: '0.8rem', color: adjustmentDelta >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                    <div style={{ marginTop: 8, fontSize: '0.78rem', color: adjustmentDelta >= 0 ? 'var(--green)' : 'var(--red)' }}>
                       Adjustment: {adjustmentDelta >= 0 ? '+' : ''}{formatCurrencyFull(adjustmentDelta)}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Notes (all types) */}
-              {(txType !== 'expense' || true) && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: 'var(--space-xs)' }}>Notes <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
-                  <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Add a note..."
-                    style={{
-                      width: '100%', padding: 'var(--space-sm) var(--space-md)',
-                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                      background: 'var(--surface)', color: 'var(--text)', fontSize: '0.9rem',
-                      outline: 'none',
-                    }} />
-                </div>
-              )}
+              {/* Notes */}
+              <div>
+                <label style={{
+                  display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)',
+                  fontWeight: 530, marginBottom: 6,
+                }}>Notes <span style={{               fontWeight: 380 }}>(optional)</span></label>
+                <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Add a note..."
+                  style={{
+                    width: '100%', padding: '9px 14px',
+                    borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                    background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
+                    outline: 'none',
+                  }} />
+              </div>
 
               {/* Form error message */}
               {formError && (
                 <div style={{
-                  padding: 'var(--space-sm) var(--space-md)',
+                  padding: '10px 14px',
                   background: 'var(--red-bg)',
                   borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.85rem', color: 'var(--red)',
-                  fontWeight: 500,
+                  fontSize: '0.82rem', color: 'var(--red)',
+                  fontWeight: 480,
                 }}>{formError}</div>
               )}
 
               {/* Submit button */}
               <button onClick={handleSubmit} style={{
-                width: '100%', padding: 'var(--space-md)',
+                width: '100%', padding: '12px',
                 borderRadius: 'var(--radius-sm)',
-                background: 'var(--primary)', border: 'none',
-                color: 'var(--text-inverse)', fontSize: '0.95rem', fontWeight: 600,
+                background: 'var(--accent)', border: 'none',
+                color: '#fff', fontSize: '1rem', fontWeight: 640,
                 cursor: 'pointer', fontFamily: 'inherit',
                 transition: 'all var(--transition)',
+                letterSpacing: '0.01em',
               }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-dark)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-dark)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; }}
               >
                 Record {TX_LABEL[txType] || 'Transaction'}
               </button>
             </div>
           </SectionCard>
 
-          {/* Ore Reference Card */}
-          <div style={{ marginTop: 'var(--space-lg)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+          {/* Ore Reference & Quick Tips */}
+          <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
             <SectionCard title="Ore Reference">
-              <div style={{ fontSize: '0.85rem' }}>
+              <div style={{ fontSize: '0.82rem' }}>
                 {['shallow', 'deep', 'nether'].map(cat => (
-                  <div key={cat} style={{ marginBottom: 'var(--space-md)' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-xs)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
+                  <div key={cat} style={{ marginBottom: 14 }}>
+                    <div style={{
+                      fontWeight: 620, fontSize: '0.82rem',
+                      textTransform: 'uppercase', letterSpacing: '0.05em',
+                      color: 'var(--text-muted)', marginBottom: 4,
+                    }}>
                       {CATEGORY_ICONS[cat]} {CATEGORY_LABELS[cat]}
                     </div>
                     {ORES.filter(o => o.category === cat).map(o => (
-                      <div key={o.id} style={{ padding: '2px 0', color: 'var(--text-secondary)' }}>{o.name}</div>
+                      <div key={o.id} style={{ padding: '2px 0', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>{o.name}</div>
                     ))}
                   </div>
                 ))}
               </div>
             </SectionCard>
             <SectionCard title="Quick Tips">
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                <div style={{ marginBottom: 'var(--space-sm)' }}>
-                  <span style={{ fontWeight: 600, color: 'var(--green)' }}>↓ Buy/Sell</span> — Affects speculative portfolio
-                </div>
-                <div style={{ marginBottom: 'var(--space-sm)' }}>
-                  <span style={{ fontWeight: 600, color: 'var(--amber)' }}>⛏ Mine Sale</span> — Pure mining income, no portfolio impact
-                </div>
-                <div style={{ marginBottom: 'var(--space-sm)' }}>
-                  <span style={{ fontWeight: 600, color: 'var(--red)' }}>✕ Expense</span> — Record spending on non-ore items
-                </div>
-                <div>
-                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>⟳ Adjust</span> — Calibrate cash to actual in-game amount
-                </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                <div><span style={{ fontWeight: 620, color: 'var(--green)' }}>↓ Buy</span> — Buy ores for portfolio</div>
+                <div><span style={{ fontWeight: 620, color: 'var(--blue)' }}>↑ Sell</span> — Sell from portfolio or mined</div>
+                <div><span style={{ fontWeight: 620, color: 'var(--amber)' }}>⛏ Mine Sale</span> — Pure mining income</div>
+                <div><span style={{ fontWeight: 620, color: 'var(--red)' }}>✕ Expense</span> — Record spending</div>
+                <div><span style={{ fontWeight: 620, color: 'var(--accent)' }}>⟳ Adjust</span> — Calibrate cash</div>
               </div>
             </SectionCard>
           </div>
@@ -1685,7 +1941,22 @@
   function App() {
     const [activeNav, setActiveNav] = React.useState('dashboard');
     const [preselectedType, setPreselectedType] = React.useState(null);
+    const [theme, setTheme] = React.useState(() => {
+      try { return localStorage.getItem('ore_ledger_theme') || 'dark'; }
+      catch { return 'dark'; }
+    });
     const ledger = useLedger();
+
+    // Apply theme data attribute
+    useEffect(() => {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem('ore_ledger_theme', theme); }
+      catch {}
+    }, [theme]);
+
+    const toggleTheme = useCallback(() => {
+      setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    }, []);
 
     const handleNavigate = useCallback((page, type) => {
       setPreselectedType(type || null);
@@ -1730,15 +2001,9 @@
       }
     };
 
-    // Responsive sidebar: collapse on small screens
-    const sidebarStyles = useMemo(() => ({
-      width: 'var(--sidebar-w)',
-      '@media (max-width: 768px)': { width: 60 },
-    }), []);
-
     return (
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar activeNav={activeNav} onNavChange={(page) => handleNavigate(page)} onExport={handleExport} onClear={handleClear} />
+        <Sidebar activeNav={activeNav} onNavChange={(page) => handleNavigate(page)} onExport={handleExport} onClear={handleClear} theme={theme} onToggleTheme={toggleTheme} />
         <div style={{ marginLeft: 'var(--sidebar-w)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <TopBar title={pageTitle} cashBalance={ledger.summary.cash} />
           {renderPage()}
