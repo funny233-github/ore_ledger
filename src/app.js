@@ -15,7 +15,7 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     try { localStorage.setItem('ore_ledger_theme', theme); }
-    catch {}
+    catch { }
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
