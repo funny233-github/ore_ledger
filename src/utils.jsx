@@ -1,20 +1,25 @@
+import { useState, useCallback, useMemo, useEffect, useRef, createContext, useContext } from 'react';
+import { Storage } from './storage.js';
+import { LedgerEngine, r2 } from './engine.js';
+import { ORES } from './data.js';
+
 /* ====================================================
    UTILITY FUNCTIONS
    ==================================================== */
 
-const formatDate = (d) => {
+export const formatDate = (d) => {
   if (!d) return '';
   const date = new Date(d);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-const formatCurrency = (n) => {
+export const formatCurrency = (n) => {
   if (n === undefined || n === null) return '0.0';
   const abs = Math.abs(n).toFixed(1);
   return n < 0 ? `-${abs}` : abs;
 };
 
-const formatCurrencyFull = (n) => {
+export const formatCurrencyFull = (n) => {
   if (n === undefined || n === null) return '0.00';
   return n.toFixed(2);
 };
@@ -25,7 +30,7 @@ const formatCurrencyFull = (n) => {
 
 const ToastContext = createContext(null);
 
-function ToastProvider({ children }) {
+export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const toastId = useRef(0);
   const exiting = useRef(new Set());
@@ -83,7 +88,7 @@ function ToastProvider({ children }) {
   );
 }
 
-function useToast() {
+export function useToast() {
   const ctx = useContext(ToastContext);
   return ctx || (() => {});
 }
@@ -92,14 +97,14 @@ function useToast() {
    HOOKS & STATE MANAGEMENT
    ==================================================== */
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { id: 'dashboard',     label: 'Dashboard',     icon: '◈' },
   { id: 'transactions',  label: 'Transactions',  icon: '↕' },
   { id: 'portfolio',     label: 'Portfolio',     icon: '⊞' },
   { id: 'new-entry',     label: 'New Entry',     icon: '+'  },
 ];
 
-function useLedger() {
+export function useLedger() {
   const [state, setState] = useState(() => Storage.loadState());
   const saveTimerRef = useRef(null);
 
@@ -117,18 +122,14 @@ function useLedger() {
   const summary = useMemo(() => LedgerEngine.computeSummary(state), [state]);
 
   const addTransaction = useCallback((tx) => {
-    let success = false;
-    setState(prev => {
-      const result = LedgerEngine.process(prev, tx);
-      if (result.error) {
-        console.warn('Ore Ledger: Transaction rejected:', result.error);
-        return prev;
-      }
-      success = true;
-      return result;
-    });
-    return success;
-  }, []);
+    const result = LedgerEngine.process(state, tx);
+    if (result.error) {
+      console.warn('Ore Ledger: Transaction rejected:', result.error);
+      return false;
+    }
+    setState(result);
+    return true;
+  }, [state]);
 
   const deleteTransaction = useCallback((txId) => {
     setState(prev => {

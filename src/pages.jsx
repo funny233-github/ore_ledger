@@ -1,8 +1,13 @@
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useLedger, useToast, formatCurrencyFull } from './utils.jsx';
+import { ORES } from './data.js';
+import { SummaryCard, QuickActionBtn, SectionCard, TransactionItem, TX_LABEL } from './components.jsx';
+
 /* ====================================================
    DASHBOARD PAGE
    ==================================================== */
 
-function DashboardPage({ ledger, onNavigate }) {
+export function DashboardPage({ ledger, onNavigate }) {
   const { summary, recentTransactions } = ledger;
 
   return (
@@ -76,9 +81,9 @@ function DashboardPage({ ledger, onNavigate }) {
    TRANSACTIONS PAGE
    ==================================================== */
 
-function TransactionsPage({ ledger, onNavigate }) {
+export function TransactionsPage({ ledger, onNavigate }) {
   const { transactions } = ledger;
-  const [filterType, setFilterType] = React.useState('all');
+  const [filterType, setFilterType] = useState('all');
 
   const filtered = useMemo(() => {
     if (filterType === 'all') return transactions;
@@ -157,7 +162,7 @@ function TransactionsPage({ ledger, onNavigate }) {
    PORTFOLIO PAGE
    ==================================================== */
 
-function PortfolioPage({ ledger }) {
+export function PortfolioPage({ ledger }) {
   const { summary, activePortfolio } = ledger;
 
   const totalValue = activePortfolio.reduce((s, p) => s + p.currentValue, 0);
@@ -257,12 +262,12 @@ function PortfolioPage({ ledger }) {
    NEW ENTRY PAGE
    ==================================================== */
 
-function NewEntryPage({ ledger, preselectedType, onNavigate }) {
+export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
   const { getOreHolding, addTransaction } = ledger;
   const toast = useToast();
-  const [txType, setTxType] = React.useState(preselectedType || 'buy');
-  const [saleSource, setSaleSource] = React.useState('portfolio');
-  const [formError, setFormError] = React.useState('');
+  const [txType, setTxType] = useState(preselectedType || 'buy');
+  const [saleSource, setSaleSource] = useState('portfolio');
+  const [formError, setFormError] = useState('');
 
   // Sync txType when preselectedType changes (e.g., quick action from Dashboard)
   useEffect(() => {
@@ -272,13 +277,13 @@ function NewEntryPage({ ledger, preselectedType, onNavigate }) {
   }, [preselectedType]);
 
   // Form fields (shared)
-  const [date, setDate] = React.useState(() => new Date().toISOString().split('T')[0]);
-  const [oreId, setOreId] = React.useState('');
-  const [quantity, setQuantity] = React.useState('');
-  const [unitPrice, setUnitPrice] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [newBalance, setNewBalance] = React.useState('');
-  const [note, setNote] = React.useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [oreId, setOreId] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [unitPrice, setUnitPrice] = useState('');
+  const [description, setDescription] = useState('');
+  const [newBalance, setNewBalance] = useState('');
+  const [note, setNote] = useState('');
 
   // Reset form when type changes
   useEffect(() => {

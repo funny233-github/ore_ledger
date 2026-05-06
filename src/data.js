@@ -1,11 +1,9 @@
-const { useState, useCallback, useMemo, useEffect, useRef, createContext, useContext } = React;
-
 /* ====================================================
    DATA MODEL
    ==================================================== */
 
 /* --- 16 Ore Types --- */
-const ORES = [
+export const ORES = [
   // Shallow (7)
   { id: 'shallow_coal',       name: 'Shallow Coal',       category: 'shallow' },
   { id: 'shallow_copper',     name: 'Shallow Copper',     category: 'shallow' },
@@ -28,9 +26,9 @@ const ORES = [
 ];
 
 /* --- Transaction Types --- */
-const TX_TYPES = ['buy', 'sell', 'mine_sell', 'expense', 'balance_adjust'];
+export const TX_TYPES = ['buy', 'sell', 'mine_sell', 'expense', 'balance_adjust'];
 
-const TX_TYPE_CONFIG = {
+export const TX_TYPE_CONFIG = {
   buy:     { label: 'Buy',       icon: '↓',   key: 'buy' },
   sell:    { label: 'Sell',      icon: '↑',   key: 'sell' },
   mine_sell: { label: 'Mine Sale', icon: '⛏', key: 'mine_sell' },
@@ -40,10 +38,10 @@ const TX_TYPE_CONFIG = {
 
 /* --- ID Generator --- */
 let _idCounter = Date.now();
-const generateId = () => `tx_${_idCounter++}_${Math.random().toString(36).slice(2, 6)}`;
+export const generateId = () => `tx_${_idCounter++}_${Math.random().toString(36).slice(2, 6)}`;
 
 /* --- Default State Factory --- */
-const createEmptyState = () => ({
+export const createEmptyState = () => ({
   version: 1,
   transactions: [],
   cash: 0,

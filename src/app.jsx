@@ -1,11 +1,18 @@
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+import { useLedger, NAV_ITEMS, ToastProvider } from './utils.jsx';
+import { Storage } from './storage.js';
+import { Sidebar, TopBar } from './components.jsx';
+import { DashboardPage, TransactionsPage, PortfolioPage, NewEntryPage } from './pages.jsx';
+
 /* ====================================================
    APP COMPONENT
    ==================================================== */
 
 function App() {
-  const [activeNav, setActiveNav] = React.useState('dashboard');
-  const [preselectedType, setPreselectedType] = React.useState(null);
-  const [theme, setTheme] = React.useState(() => {
+  const [activeNav, setActiveNav] = useState('dashboard');
+  const [preselectedType, setPreselectedType] = useState(null);
+  const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('ore_ledger_theme') || 'dark'; }
     catch { return 'dark'; }
   });
@@ -80,7 +87,7 @@ function App() {
    MOUNT
    ==================================================== */
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = createRoot(document.getElementById('root'));
 root.render(
   <ToastProvider>
     <App />

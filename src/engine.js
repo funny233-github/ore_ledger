@@ -1,10 +1,12 @@
+import { generateId } from './data.js';
+
 /* ====================================================
    BUSINESS LOGIC ENGINE
    ==================================================== */
 
-const r2 = (n) => Math.round(n * 100) / 100;
+export const r2 = (n) => Math.round(n * 100) / 100;
 
-const LedgerEngine = {
+export const LedgerEngine = {
   /** Process a buy transaction and return updated state */
   processBuy(state, tx) {
     const s = structuredClone(state);

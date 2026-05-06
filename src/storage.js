@@ -1,10 +1,12 @@
+import { createEmptyState } from './data.js';
+
 /* ====================================================
    LOCALSTORAGE UTILITIES
    ==================================================== */
 
 const STORAGE_KEY = 'ore_ledger_state';
 
-const Storage = {
+export const Storage = {
   loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);

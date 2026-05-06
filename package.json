@@ -7,10 +7,18 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "serve": "npx serve .",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
   }
 }

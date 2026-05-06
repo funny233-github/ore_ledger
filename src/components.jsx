@@ -1,5 +1,7 @@
+import { NAV_ITEMS, formatDate, formatCurrencyFull } from './utils.jsx';
+
 /* --- Sidebar — Claude.ai dark sidebar style --- */
-function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }) {
+export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }) {
   return (
     <aside style={{
       width: 'var(--sidebar-w)',
@@ -139,7 +141,7 @@ function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleThe
 }
 
 /* --- Top Bar — claude.ai minimal header --- */
-function TopBar({ title, cashBalance }) {
+export function TopBar({ title, cashBalance }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -175,7 +177,7 @@ function TopBar({ title, cashBalance }) {
 }
 
 /* --- Summary Card — clean, minimal card --- */
-function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
+export function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
   const colorMap = { positive: 'var(--green)', negative: 'var(--red)', neutral: 'var(--text)' };
   return (
     <div className="card-enter" style={{
@@ -211,7 +213,7 @@ function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
 }
 
 /* --- Transaction Item — refined row --- */
-const TX_VISUAL = {
+export const TX_VISUAL = {
   buy:           { icon: '↓', cls: 'buy',    color: 'var(--green)' },
   sell:          { icon: '↑', cls: 'sell',   color: 'var(--blue)' },
   mine_sell:     { icon: '⛏', cls: 'mine',   color: 'var(--amber)' },
@@ -219,11 +221,11 @@ const TX_VISUAL = {
   balance_adjust: { icon: '⟳', cls: 'adjust', color: 'var(--accent)' },
 };
 
-const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--accent-glow)' };
+export const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--accent-glow)' };
 
-const TX_LABEL = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust' };
+export const TX_LABEL = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust' };
 
-function TransactionItem({ tx, onDelete, showDelete }) {
+export function TransactionItem({ tx, onDelete, showDelete }) {
   const vis = TX_VISUAL[tx.type] || TX_VISUAL.buy;
   const bg = TX_BG[tx.type] || TX_BG.buy;
   const label = TX_LABEL[tx.type] || tx.type;
@@ -249,7 +251,6 @@ function TransactionItem({ tx, onDelete, showDelete }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '14px',
-      padding: '12px 0',
       borderBottom: '1px solid var(--border-light)',
       transition: 'background var(--transition)',
       borderRadius: 'var(--radius-sm)',
@@ -293,7 +294,7 @@ function TransactionItem({ tx, onDelete, showDelete }) {
 }
 
 /* --- Quick Action Button --- */
-function QuickActionBtn({ icon, label, color, onClick }) {
+export function QuickActionBtn({ icon, label, color, onClick }) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: '10px',
@@ -327,7 +328,7 @@ function QuickActionBtn({ icon, label, color, onClick }) {
 }
 
 /* --- Section Card — minimal card container --- */
-function SectionCard({ title, children, headerRight }) {
+export function SectionCard({ title, children, headerRight }) {
   return (
     <div style={{
       background: 'var(--surface)',
