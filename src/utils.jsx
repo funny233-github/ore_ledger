@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef, createContext, useContext } from 'react';
 import { Storage } from './storage.js';
 import { LedgerEngine, r2 } from './engine.js';
-import { ORES } from './data.js';
+import { ORES, generateId } from './data.js';
 
 /* ====================================================
    UTILITY FUNCTIONS
@@ -185,6 +185,18 @@ export function useLedger() {
           s.metadata.totalAdjustments -= (tx.adjustment || 0);
           break;
         }
+        case 'write_off': {
+          const assetId = tx.asset;
+          const lossAmount = tx.lossAmount || 0;
+          if (!s.portfolio[assetId]) {
+            s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
+          }
+          const p = s.portfolio[assetId];
+          p.quantity += tx.quantity;
+          p.totalCost += lossAmount;
+          p.avgCost = p.quantity > 0 ? r2(p.totalCost / p.quantity) : 0;
+          break;
+        }
       }
       return s;
     });
@@ -219,6 +231,49 @@ export function useLedger() {
     return state.portfolio[oreId] || { quantity: 0, totalCost: 0, avgCost: 0 };
   }, [state.portfolio]);
 
+  const getOreCostAnalysis = useCallback((oreId) => {
+    const buys = state.transactions
+      .filter(t => t.type === 'buy' && t.asset === oreId)
+      .sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return (a.createdAt || 0) - (b.createdAt || 0);
+      });
+    if (buys.length === 0) {
+      return { count: 0, minPrice: 0, maxPrice: 0, latestPrice: 0, avgCost: 0 };
+    }
+    const prices = buys.map(t => t.unitPrice);
+    const latestPrice = prices[prices.length - 1];
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const holding = state.portfolio[oreId];
+    const avgCost = holding ? holding.avgCost : 0;
+    const vsLatest = avgCost > 0 ? r2((latestPrice - avgCost) / avgCost * 100) : 0;
+    return { count: buys.length, minPrice, maxPrice, latestPrice, avgCost, vsLatest };
+  }, [state.transactions, state.portfolio]);
+
+  const adjustQuantity = useCallback((oreId, newQuantity) => {
+    const holding = state.portfolio[oreId];
+    if (!holding || holding.quantity <= 0) return false;
+    const diff = holding.quantity - newQuantity;
+    if (diff <= 0) return false;
+
+    const result = LedgerEngine.process(state, {
+      type: 'write_off',
+      asset: oreId,
+      quantity: diff,
+      unitPrice: holding.avgCost,
+      totalAmount: 0,
+      date: new Date().toISOString().split('T')[0],
+      note: `Inventory write-off: reduced from ${holding.quantity} to ${newQuantity}`,
+    });
+    if (result.error) {
+      console.warn('Ore Ledger: write-off rejected:', result.error);
+      return false;
+    }
+    setState(result);
+    return true;
+  }, [state]);
+
   const recentTransactions = useMemo(() => {
     return sortedTransactions.slice(0, 5);
   }, [sortedTransactions]);
@@ -232,5 +287,7 @@ export function useLedger() {
     addTransaction,
     deleteTransaction,
     getOreHolding,
+    getOreCostAnalysis,
+    adjustQuantity,
   };
 }

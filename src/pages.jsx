@@ -108,7 +108,7 @@ export function TransactionsPage({ ledger, onNavigate }) {
         <div style={{
           display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center',
         }}>
-          {['all', 'buy', 'sell', 'mine_sell', 'expense', 'balance_adjust'].map(type => (
+          {['all', 'buy', 'sell', 'mine_sell', 'expense', 'balance_adjust', 'write_off'].map(type => (
             <button key={type} onClick={() => setFilterType(type)} style={{
               padding: '5px 14px',
               borderRadius: 'var(--radius-sm)',
@@ -163,12 +163,37 @@ export function TransactionsPage({ ledger, onNavigate }) {
    ==================================================== */
 
 export function PortfolioPage({ ledger }) {
-  const { summary, activePortfolio } = ledger;
+  const { summary, activePortfolio, getOreCostAnalysis, adjustQuantity } = ledger;
+  const toast = useToast();
+  const [editOreId, setEditOreId] = useState(null);
+  const [editValue, setEditValue] = useState('');
 
-  const totalValue = activePortfolio.reduce((s, p) => s + p.currentValue, 0);
   const totalCost = activePortfolio.reduce((s, p) => s + p.totalCost, 0);
-  const unrealizedPnL = totalValue - totalCost;
-  const pnlPercent = totalCost > 0 ? (unrealizedPnL / totalCost * 100) : 0;
+
+  const startEdit = (oreId, currentQty) => {
+    setEditOreId(oreId);
+    setEditValue(String(currentQty));
+  };
+
+  const confirmEdit = (oreId) => {
+    const newQty = parseInt(editValue, 10);
+    if (!newQty || newQty < 0) {
+      toast('Invalid quantity', 'error');
+      return;
+    }
+    if (adjustQuantity(oreId, newQty)) {
+      toast('Inventory updated', 'success');
+    } else {
+      toast('No change — quantity must be lower than current', 'error');
+    }
+    setEditOreId(null);
+    setEditValue('');
+  };
+
+  const cancelEdit = () => {
+    setEditOreId(null);
+    setEditValue('');
+  };
 
   return (
     <div className="page">
@@ -187,13 +212,7 @@ export function PortfolioPage({ ledger }) {
         {/* Summary Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--space-md)', marginBottom: 28 }}>
           <SummaryCard label="Total Holdings" value={`${summary.totalHoldings} items`} sub="Across all ores" />
-          <SummaryCard label="Portfolio Value" value={formatCurrencyFull(totalValue)} sub={`Cost basis: ${formatCurrencyFull(totalCost)}`} />
-          <SummaryCard
-            label="Unrealized P&L"
-            value={`${unrealizedPnL >= 0 ? '+' : ''}${formatCurrencyFull(unrealizedPnL)}`}
-            typeVariant={unrealizedPnL >= 0 ? 'positive' : 'negative'}
-            sub={`${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(1)}%`}
-          />
+          <SummaryCard label="Total Cost Basis" value={formatCurrencyFull(totalCost)} sub="Total amount spent" />
         </div>
 
         {/* Holdings Table */}
@@ -212,7 +231,7 @@ export function PortfolioPage({ ledger }) {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    {['Ore', 'Quantity', 'Avg Cost', 'Total Cost', 'Value', 'P&L'].map(h => (
+                    {['Ore', 'Qty', 'Avg Cost', 'Buys', 'Cost Range', 'vs Latest'].map(h => (
                         <th key={h} style={{
                           textAlign: h === 'Ore' ? 'left' : 'right',
                           fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -225,20 +244,54 @@ export function PortfolioPage({ ledger }) {
                 </thead>
                 <tbody>
                   {activePortfolio.map(p => {
-                    const pnl = p.currentValue - p.totalCost;
+                    const analysis = getOreCostAnalysis(p.id);
+                    const hasRange = analysis.count > 0;
+                    const rangeStr = hasRange
+                      ? `${formatCurrencyFull(analysis.minPrice)} ~ ${formatCurrencyFull(analysis.maxPrice)}`
+                      : '-';
                     return (
                       <tr key={p.id}>
                         <td style={{ padding: '12px 16px', fontSize: '1rem', fontWeight: 620, borderBottom: '1px solid var(--border-light)' }}>{p.name}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{p.quantity}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)', cursor: 'pointer' }}
+                          onClick={() => startEdit(p.id, p.quantity)}
+                        >
+                          {editOreId === p.id ? (
+                            <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+                              <input type="number" min="0" autoFocus
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') confirmEdit(p.id);
+                                  if (e.key === 'Escape') cancelEdit();
+                                }}
+                                onBlur={() => confirmEdit(p.id)}
+                                style={{
+                                  width: 60, padding: '3px 6px',
+                                  borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent)',
+                                  background: 'var(--surface)', color: 'var(--text)',
+                                  fontSize: '0.9rem', fontFamily: 'inherit',
+                                  textAlign: 'right', outline: 'none',
+                                }}
+                              />
+                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                ({p.quantity})
+                              </span>
+                            </span>
+                          ) : (
+                            <span title="Click to adjust quantity">{p.quantity}</span>
+                          )}
+                        </td>
                         <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.avgCost)}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.totalCost)}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.currentValue)}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{hasRange ? analysis.count : '-'}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.85rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 520, textAlign: 'right', borderBottom: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>{rangeStr}</td>
                         <td style={{
-                          padding: '12px 16px', fontSize: '1rem',
+                          padding: '12px 16px', fontSize: '0.9rem',
                           fontFamily: "'JetBrains Mono', monospace", fontWeight: 580,
                           textAlign: 'right', borderBottom: '1px solid var(--border-light)',
-                          color: pnl >= 0 ? 'var(--green)' : 'var(--red)',
-                        }}>{pnl >= 0 ? '+' : ''}{formatCurrencyFull(pnl)}</td>
+                          color: hasRange ? (analysis.vsLatest >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text-muted)',
+                        }}>
+                          {hasRange ? `${analysis.vsLatest >= 0 ? '+' : ''}${analysis.vsLatest.toFixed(1)}%` : '-'}
+                        </td>
                       </tr>
                     );
                   })}
@@ -249,8 +302,9 @@ export function PortfolioPage({ ledger }) {
         </SectionCard>
 
         {activePortfolio.length > 0 && (
-          <div style={{ marginTop: 14, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            * Current values shown at average cost (no real-time pricing).
+          <div style={{ marginTop: 14, fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            <div>Click a <strong>Qty</strong> to adjust your actual holdings (e.g. after losing ore).</div>
+            <div><strong>vs Latest</strong> compares your average cost to the most recent buy price.</div>
           </div>
         )}
       </div>
@@ -263,7 +317,7 @@ export function PortfolioPage({ ledger }) {
    ==================================================== */
 
 export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
-  const { getOreHolding, addTransaction } = ledger;
+  const { getOreHolding, getOreCostAnalysis, addTransaction } = ledger;
   const toast = useToast();
   const [txType, setTxType] = useState(preselectedType || 'buy');
   const [saleSource, setSaleSource] = useState('portfolio');
@@ -322,6 +376,7 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
 
   // Holdings info for sell
   const currentHolding = getOreHolding(oreId);
+  const costAnalysis = getOreCostAnalysis(oreId);
 
   // Auto-calculated total
   const calculatedTotal = useMemo(() => {
@@ -575,8 +630,14 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
                   </select>
                 )}
                 {txType === 'sell' && oreId && saleSource === 'portfolio' && (
-                  <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Holding: {currentHolding.quantity} units · Avg cost: {formatCurrencyFull(currentHolding.avgCost)}
+                  <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                    <div>Holding: {currentHolding.quantity} units · Avg cost: {formatCurrencyFull(currentHolding.avgCost)}</div>
+                    {costAnalysis.count > 0 && (
+                      <div>
+                        {costAnalysis.count} buy{costAnalysis.count > 1 ? 's' : ''} · Range: {formatCurrencyFull(costAnalysis.minPrice)} ~ {formatCurrencyFull(costAnalysis.maxPrice)}
+                        · Latest buy: {formatCurrencyFull(costAnalysis.latestPrice)}
+                      </div>
+                    )}
                   </div>
                 )}
                 {txType === 'sell' && saleSource === 'mined' && (
@@ -668,8 +729,13 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
                 fontSize: '0.82rem',
                 color: saleSource === 'mined' ? 'var(--amber)' : 'var(--accent-dark)',
               }}>
-                {saleSource === 'mined' ? 'Mining Income' : 'Estimated P&L'}: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550, color: estimatedProfit >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                  +{formatCurrencyFull(estimatedProfit)}
+                {saleSource === 'mined' ? 'Mining Income' : 'Est. P&L'}: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550, color: estimatedProfit >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                  {estimatedProfit >= 0 ? '+' : ''}{formatCurrencyFull(estimatedProfit)}
+                  {saleSource === 'portfolio' && currentHolding.avgCost > 0 && (() => {
+                    const costBasis = parseFloat(quantity) * currentHolding.avgCost;
+                    const pct = ((estimatedProfit / costBasis) * 100);
+                    return <span style={{ fontWeight: 480, opacity: 0.7 }}> ({pct >= 0 ? '+' : ''}{pct.toFixed(1)}%)</span>;
+                  })()}
                 </span>
               </div>
             )}

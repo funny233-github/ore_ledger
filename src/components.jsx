@@ -219,11 +219,12 @@ export const TX_VISUAL = {
   mine_sell:     { icon: '⛏', cls: 'mine',   color: 'var(--amber)' },
   expense:       { icon: '✕', cls: 'expense', color: 'var(--red)' },
   balance_adjust: { icon: '⟳', cls: 'adjust', color: 'var(--accent)' },
+  write_off:     { icon: '✗', cls: 'write-off', color: 'var(--red)' },
 };
 
-export const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--accent-glow)' };
+export const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--accent-glow)', write_off: 'var(--red-bg)' };
 
-export const TX_LABEL = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust' };
+export const TX_LABEL = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust', write_off: 'Write-off' };
 
 export function TransactionItem({ tx, onDelete, showDelete }) {
   const vis = TX_VISUAL[tx.type] || TX_VISUAL.buy;
@@ -232,8 +233,10 @@ export function TransactionItem({ tx, onDelete, showDelete }) {
   const isNegative = tx.totalAmount < 0;
   const displayAmount = tx.type === 'balance_adjust'
     ? (tx.adjustment >= 0 ? `+${formatCurrencyFull(tx.adjustment)}` : formatCurrencyFull(tx.adjustment))
-    : (isNegative ? `-${formatCurrencyFull(Math.abs(tx.totalAmount))}` : `+${formatCurrencyFull(tx.totalAmount)}`);
-  const isPositiveAmount = tx.type === 'balance_adjust' ? tx.adjustment >= 0 : !isNegative;
+    : tx.type === 'write_off'
+      ? `-${formatCurrencyFull(tx.lossAmount || 0)}`
+      : (isNegative ? `-${formatCurrencyFull(Math.abs(tx.totalAmount))}` : `+${formatCurrencyFull(tx.totalAmount)}`);
+  const isPositiveAmount = tx.type === 'balance_adjust' ? tx.adjustment >= 0 : tx.type === 'write_off' ? false : !isNegative;
 
   let name = tx.description || tx.asset || label;
   let metaParts = [`${label}`];
@@ -246,6 +249,9 @@ export function TransactionItem({ tx, onDelete, showDelete }) {
     } else if (tx.profit !== undefined) {
       metaParts.push(`· P&L: ${tx.profit >= 0 ? '+' : ''}${formatCurrencyFull(tx.profit)}`);
     }
+  }
+  if (tx.type === 'write_off' && tx.lossAmount) {
+    metaParts.push(`· Lost: ${formatCurrencyFull(tx.lossAmount)}`);
   }
 
   return (

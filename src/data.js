@@ -26,7 +26,7 @@ export const ORES = [
 ];
 
 /* --- Transaction Types --- */
-export const TX_TYPES = ['buy', 'sell', 'mine_sell', 'expense', 'balance_adjust'];
+export const TX_TYPES = ['buy', 'sell', 'mine_sell', 'expense', 'balance_adjust', 'write_off'];
 
 export const TX_TYPE_CONFIG = {
   buy:     { label: 'Buy',       icon: '↓',   key: 'buy' },
@@ -34,6 +34,7 @@ export const TX_TYPE_CONFIG = {
   mine_sell: { label: 'Mine Sale', icon: '⛏', key: 'mine_sell' },
   expense: { label: 'Expense',   icon: '✕',   key: 'expense' },
   balance_adjust: { label: 'Adjust', icon: '⟳', key: 'balance_adjust' },
+  write_off: { label: 'Write-off', icon: '✗',  key: 'write_off' },
 };
 
 /* --- ID Generator --- */

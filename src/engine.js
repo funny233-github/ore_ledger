@@ -128,12 +128,43 @@ export const LedgerEngine = {
       id: generateId(),
       createdAt: Date.now(),
       adjustment: adjustment,
-      previousBalance: s.cash - adjustment, // will be overwritten by next line but we fix below
+      previousBalance: s.cash - adjustment,
     });
 
-    // Fix: compute previous before modifying
     const txIdx = s.transactions.length - 1;
     s.transactions[txIdx].previousBalance = r2(newBalance - adjustment);
+
+    return s;
+  },
+
+  /** Process a write-off (inventory loss — no cash impact) */
+  processWriteOff(state, tx) {
+    const s = structuredClone(state);
+    const assetId = tx.asset;
+    const qty = tx.quantity;
+    const p = s.portfolio[assetId];
+    if (!p || p.quantity < qty) {
+      return { error: `Insufficient holdings: have ${p?.quantity || 0}, trying to write off ${qty}` };
+    }
+
+    const lossAmount = r2(qty * p.avgCost);
+    p.quantity -= qty;
+    p.totalCost = r2(p.totalCost - lossAmount);
+    if (p.quantity <= 0) {
+      p.quantity = 0;
+      p.totalCost = 0;
+      p.avgCost = 0;
+    } else {
+      p.avgCost = r2(p.totalCost / p.quantity);
+    }
+
+    s.transactions.push({
+      ...tx,
+      id: generateId(),
+      createdAt: Date.now(),
+      lossAmount,
+      previousQuantity: p.quantity + qty,
+    });
 
     return s;
   },
@@ -171,6 +202,7 @@ export const LedgerEngine = {
       case 'mine_sell':     return this.processMineSell(state, tx);
       case 'expense':       return this.processExpense(state, tx);
       case 'balance_adjust': return this.processBalanceAdjust(state, tx);
+      case 'write_off':     return this.processWriteOff(state, tx);
       default:              return { error: `Unknown transaction type: ${tx.type}` };
     }
   },
