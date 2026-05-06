@@ -2,7 +2,7 @@
 
 A Minecraft ore stock market bookkeeping app — track your virtual ore trading portfolio, mining income, and expenses in a clean, Claude-inspired dark/light UI.
 
-> Built with React 18 + Babel standalone — no build step required.
+> Built with Vite + React 18.
 
 ## Features
 
@@ -16,40 +16,45 @@ A Minecraft ore stock market bookkeeping app — track your virtual ore trading 
 
 ## Quick Start
 
-```bash
-npm run serve
-```
-
-Or with any static HTTP server:
+### Development
 
 ```bash
-python -m http.server 3000
-# or
-npx serve .
+npm run dev
 ```
 
-Open `http://localhost:3000` in your browser.
+### Production Build
 
-> **Note:** The app uses Babel standalone to transpile JSX in the browser. Opening `Ore Ledger.html` directly via `file://` may not work due to browser fetch restrictions — use a local server.
+```bash
+npm run build
+npm run serve    # preview the build locally
+```
 
 ## Project Structure
 
 ```
 ore_ledger/
-├── Ore Ledger.html         # Entry point — loads all modules
+├── index.html              # Entry point
 ├── styles.css              # All CSS (dark/light theme, layout, animations)
+├── vite.config.js          # Vite config
+├── .github/workflows/      # GitHub Actions (auto-deploy to Pages)
 ├── src/
 │   ├── data.js             # Constants: ore types, transaction config, ID generator
 │   ├── storage.js          # localStorage read/write, import/export
 │   ├── engine.js           # Business logic: buy/sell/expense/adjust processing
-│   ├── utils.js            # Formatters, toast notification system, useLedger hook
-│   ├── components.js       # Reusable UI components (Sidebar, TopBar, cards, etc.)
-│   ├── pages.js            # Page-level components (Dashboard, Transactions, etc.)
-│   └── app.js              # App shell + ReactDOM mount
+│   ├── utils.jsx           # Formatters, toast notification system, useLedger hook
+│   ├── components.jsx      # Reusable UI components (Sidebar, TopBar, cards, etc.)
+│   ├── pages.jsx           # Page-level components (Dashboard, Transactions, etc.)
+│   └── app.jsx             # App shell + ReactDOM mount
 └── package.json
 ```
 
-Scripts are loaded as `<script type="text/babel" src="...">` in dependency order. Each file defines its exports in the global scope for the next file to consume.
+## GitHub Pages Deployment
+
+Push to `master` — GitHub Actions builds and deploys automatically.
+
+1. Go to repo **Settings → Pages → Source** and select **GitHub Actions**
+2. Push to `master` — the workflow at `.github/workflows/deploy.yml` handles the rest
+3. Your app will be live at `https://<username>.github.io/ore_ledger/`
 
 ## Ore Types
 
