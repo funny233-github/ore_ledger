@@ -7,6 +7,7 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "serve": "npx serve .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
