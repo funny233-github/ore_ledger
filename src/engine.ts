@@ -1,20 +1,15 @@
-import { generateId } from './data.js';
+import { generateId } from './data';
+import type { LedgerState, TransactionInput, Transaction, PortfolioEntry, EngineResult, LedgerSummary } from './data';
 
-/* ====================================================
-   BUSINESS LOGIC ENGINE
-   ==================================================== */
-
-export const r2 = (n) => Math.round(n * 100) / 100;
+export const r2 = (n: number): number => Math.round(n * 100) / 100;
 
 export const LedgerEngine = {
-  /** Process a buy transaction and return updated state */
-  processBuy(state, tx) {
+  processBuy(state: LedgerState, tx: TransactionInput): LedgerState {
     const s = structuredClone(state);
-    const assetId = tx.asset;
-    const qty = tx.quantity;
-    const totalPaid = Math.abs(tx.totalAmount); // totalAmount is negative
+    const assetId = tx.asset!;
+    const qty = tx.quantity!;
+    const totalPaid = Math.abs(tx.totalAmount);
 
-    // Initialize portfolio entry if needed
     if (!s.portfolio[assetId]) {
       s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
     }
@@ -25,20 +20,22 @@ export const LedgerEngine = {
     p.avgCost = r2(p.totalCost / p.quantity);
 
     s.cash -= totalPaid;
-    s.transactions.push({ ...tx, id: generateId(), createdAt: Date.now() });
+    s.transactions.push({
+      ...tx,
+      id: generateId(),
+      createdAt: Date.now(),
+    } as Transaction);
 
     return s;
   },
 
-  /** Process a sell transaction and return updated state */
-  processSell(state, tx) {
+  processSell(state: LedgerState, tx: TransactionInput): EngineResult {
     const s = structuredClone(state);
-    const assetId = tx.asset;
-    const qty = tx.quantity;
-    const received = tx.totalAmount; // positive
+    const assetId = tx.asset!;
+    const qty = tx.quantity!;
+    const received = tx.totalAmount;
     const source = tx.source || 'portfolio';
 
-    // Mined ore sell: no portfolio impact, pure income
     if (source === 'mined') {
       s.cash += received;
       s.metadata.totalMiningIncome += received;
@@ -46,13 +43,12 @@ export const LedgerEngine = {
         ...tx,
         id: generateId(),
         createdAt: Date.now(),
-        profit: received, // full amount is profit (mined, no cost basis)
+        profit: received,
         source: 'mined',
-      });
+      } as Transaction);
       return s;
     }
 
-    // Portfolio sell: existing speculative logic
     const p = s.portfolio[assetId];
     if (!p || p.quantity < qty) {
       return { error: `Insufficient holdings: have ${p?.quantity || 0}, trying to sell ${qty}` };
@@ -79,45 +75,50 @@ export const LedgerEngine = {
       ...tx,
       id: generateId(),
       createdAt: Date.now(),
-      profit: profit,
+      profit,
       avgCostAtSale: avgCostBefore,
-      costOfSold: costOfSold,
+      costOfSold,
       source: 'portfolio',
-    });
+    } as Transaction);
 
     return s;
   },
 
-  /** Process a mine_sell transaction (no portfolio impact) */
-  processMineSell(state, tx) {
+  processMineSell(state: LedgerState, tx: TransactionInput): LedgerState {
     const s = structuredClone(state);
-    const received = tx.totalAmount; // positive
+    const received = tx.totalAmount;
 
     s.cash += received;
     s.metadata.totalMiningIncome += received;
 
-    s.transactions.push({ ...tx, id: generateId(), createdAt: Date.now() });
+    s.transactions.push({
+      ...tx,
+      id: generateId(),
+      createdAt: Date.now(),
+    } as Transaction);
 
     return s;
   },
 
-  /** Process an expense transaction */
-  processExpense(state, tx) {
+  processExpense(state: LedgerState, tx: TransactionInput): LedgerState {
     const s = structuredClone(state);
-    const spent = Math.abs(tx.totalAmount); // totalAmount is negative
+    const spent = Math.abs(tx.totalAmount);
 
     s.cash -= spent;
     s.metadata.totalExpenses += spent;
 
-    s.transactions.push({ ...tx, id: generateId(), createdAt: Date.now() });
+    s.transactions.push({
+      ...tx,
+      id: generateId(),
+      createdAt: Date.now(),
+    } as Transaction);
 
     return s;
   },
 
-  /** Process a balance adjustment */
-  processBalanceAdjust(state, tx) {
+  processBalanceAdjust(state: LedgerState, tx: TransactionInput): LedgerState {
     const s = structuredClone(state);
-    const newBalance = tx.newBalance;
+    const newBalance = tx.newBalance!;
     const adjustment = r2(newBalance - s.cash);
 
     s.cash = newBalance;
@@ -127,21 +128,17 @@ export const LedgerEngine = {
       ...tx,
       id: generateId(),
       createdAt: Date.now(),
-      adjustment: adjustment,
+      adjustment,
       previousBalance: s.cash - adjustment,
-    });
-
-    const txIdx = s.transactions.length - 1;
-    s.transactions[txIdx].previousBalance = r2(newBalance - adjustment);
+    } as Transaction);
 
     return s;
   },
 
-  /** Process a write-off (inventory loss — no cash impact) */
-  processWriteOff(state, tx) {
+  processWriteOff(state: LedgerState, tx: TransactionInput): EngineResult {
     const s = structuredClone(state);
-    const assetId = tx.asset;
-    const qty = tx.quantity;
+    const assetId = tx.asset!;
+    const qty = tx.quantity!;
     const p = s.portfolio[assetId];
     if (!p || p.quantity < qty) {
       return { error: `Insufficient holdings: have ${p?.quantity || 0}, trying to write off ${qty}` };
@@ -164,18 +161,17 @@ export const LedgerEngine = {
       createdAt: Date.now(),
       lossAmount,
       previousQuantity: p.quantity + qty,
-    });
+    } as Transaction);
 
     return s;
   },
 
-  /** Compute summary statistics from current state */
-  computeSummary(state) {
+  computeSummary(state: LedgerState): LedgerSummary {
     const s = state;
     let portfolioValue = 0;
     let totalHoldings = 0;
 
-    Object.entries(s.portfolio).forEach(([id, p]) => {
+    Object.entries(s.portfolio).forEach(([_id, p]: [string, PortfolioEntry]) => {
       if (p.quantity > 0) {
         totalHoldings += p.quantity;
         portfolioValue += r2(p.quantity * p.avgCost);
@@ -190,12 +186,11 @@ export const LedgerEngine = {
       totalAdjustments: r2(s.metadata.totalAdjustments),
       portfolioValue: r2(portfolioValue),
       totalHoldings,
-      unrealizedPnL: r2(portfolioValue - Object.values(s.portfolio).reduce((sum, p) => sum + p.totalCost, 0)),
+      unrealizedPnL: r2(portfolioValue - Object.values(s.portfolio).reduce((sum: number, p: PortfolioEntry) => sum + p.totalCost, 0)),
     };
   },
 
-  /** Process a transaction: automatically detect type and route */
-  process(state, tx) {
+  process(state: LedgerState, tx: TransactionInput): EngineResult {
     switch (tx.type) {
       case 'buy':           return this.processBuy(state, tx);
       case 'sell':          return this.processSell(state, tx);
@@ -203,7 +198,7 @@ export const LedgerEngine = {
       case 'expense':       return this.processExpense(state, tx);
       case 'balance_adjust': return this.processBalanceAdjust(state, tx);
       case 'write_off':     return this.processWriteOff(state, tx);
-      default:              return { error: `Unknown transaction type: ${tx.type}` };
+      default:              return { error: `Unknown transaction type: ${(tx as TransactionInput).type}` };
     }
   },
 };

@@ -1,8 +1,21 @@
-import { NAV_ITEMS, formatDate, formatCurrencyFull } from './utils.jsx';
-import { ORES } from './data.js';
+import type { ReactNode } from 'react';
+import { NAV_ITEMS, formatDate, formatCurrencyFull } from './utils';
+import type { NavItem, OreCostAnalysis } from './utils';
+import { ORES } from './data';
+import type { Ore, PortfolioEntryWithMeta, Transaction, TxType, LedgerSummary } from './data';
 
-/* --- Sidebar — Claude.ai dark sidebar style --- */
-export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }) {
+/* --- Sidebar props --- */
+
+interface SidebarProps {
+  activeNav: string;
+  onNavChange: (page: string) => void;
+  onExport: () => void;
+  onClear: () => void;
+  theme: string;
+  onToggleTheme: () => void;
+}
+
+export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }: SidebarProps) {
   return (
     <aside style={{
       width: 'var(--sidebar-w)',
@@ -46,7 +59,7 @@ export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onTo
         padding: '12px 10px',
         overflowY: 'auto',
       }}>
-        {NAV_ITEMS.map(item => (
+        {NAV_ITEMS.map((item: NavItem) => (
           <button key={item.id}
             onClick={() => onNavChange(item.id)}
             style={{
@@ -63,11 +76,11 @@ export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onTo
             }}
             onMouseEnter={e => {
               if (activeNav !== item.id)
-                e.currentTarget.style.background = 'var(--bg-sidebar-hover)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-sidebar-hover)';
             }}
             onMouseLeave={e => {
               if (activeNav !== item.id)
-                e.currentTarget.style.background = 'transparent';
+                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
             }}
           >
             <span style={{
@@ -104,8 +117,8 @@ export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onTo
               fontFamily: 'inherit', borderRadius: 'var(--radius-sm)',
               transition: 'all var(--transition)',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-light)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-sidebar)'; e.currentTarget.style.color = 'var(--text-sidebar-muted)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-light)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-sidebar)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-sidebar-muted)'; }}
           >{theme === 'dark' ? '☀ Light' : '☾ Dark'}</button>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -119,8 +132,8 @@ export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onTo
               fontFamily: 'inherit',
               transition: 'all var(--transition)', fontWeight: 480,
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-light)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-sidebar)'; e.currentTarget.style.color = 'var(--text-sidebar-muted)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-light)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-sidebar)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-sidebar-muted)'; }}
           >Export</button>
           <button onClick={onClear} title="Clear all data"
             style={{
@@ -132,8 +145,8 @@ export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onTo
               fontFamily: 'inherit',
               transition: 'all var(--transition)', fontWeight: 480,
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-sidebar)'; e.currentTarget.style.color = 'var(--text-sidebar-muted)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--red)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--red)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-sidebar)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-sidebar-muted)'; }}
           >Clear</button>
         </div>
       </div>
@@ -141,8 +154,14 @@ export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onTo
   );
 }
 
-/* --- Top Bar — claude.ai minimal header --- */
-export function TopBar({ title, cashBalance }) {
+/* --- Top Bar --- */
+
+interface TopBarProps {
+  title: string;
+  cashBalance: number;
+}
+
+export function TopBar({ title, cashBalance }: TopBarProps) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -177,9 +196,19 @@ export function TopBar({ title, cashBalance }) {
   );
 }
 
-/* --- Summary Card — clean, minimal card --- */
-export function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
-  const colorMap = { positive: 'var(--green)', negative: 'var(--red)', neutral: 'var(--text)' };
+/* --- Summary Card --- */
+
+type CardVariant = 'positive' | 'negative' | 'neutral';
+
+interface SummaryCardProps {
+  label: string;
+  value: string;
+  sub?: string;
+  typeVariant?: CardVariant;
+}
+
+export function SummaryCard({ label, value, sub, typeVariant = 'neutral' }: SummaryCardProps) {
+  const colorMap: Record<CardVariant, string> = { positive: 'var(--green)', negative: 'var(--red)', neutral: 'var(--text)' };
   return (
     <div className="card-enter" style={{
       background: 'var(--surface)',
@@ -190,12 +219,12 @@ export function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
       cursor: 'default',
     }}
       onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-        e.currentTarget.style.borderColor = 'var(--accent-subtle)';
+        (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-md)';
+        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--accent-subtle)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.borderColor = 'var(--border)';
+        (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)';
       }}
     >
       <div style={{
@@ -213,8 +242,9 @@ export function SummaryCard({ label, value, sub, typeVariant = 'neutral' }) {
   );
 }
 
-/* --- Transaction Item — refined row --- */
-export const TX_VISUAL = {
+/* --- Transaction Item --- */
+
+export const TX_VISUAL: Record<string, { icon: string; cls: string; color: string }> = {
   buy:           { icon: '↓', cls: 'buy',    color: 'var(--green)' },
   sell:          { icon: '↑', cls: 'sell',   color: 'var(--blue)' },
   mine_sell:     { icon: '⛏', cls: 'mine',   color: 'var(--amber)' },
@@ -223,30 +253,36 @@ export const TX_VISUAL = {
   write_off:     { icon: '✗', cls: 'write-off', color: 'var(--red)' },
 };
 
-export const TX_BG = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--accent-glow)', write_off: 'var(--red-bg)' };
+export const TX_BG: Record<string, string> = { buy: 'var(--green-bg)', sell: 'var(--blue-bg)', mine_sell: 'var(--amber-bg)', expense: 'var(--red-bg)', balance_adjust: 'var(--accent-glow)', write_off: 'var(--red-bg)' };
 
-export const TX_LABEL = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust', write_off: 'Write-off' };
+export const TX_LABEL: Record<string, string> = { buy: 'Buy', sell: 'Sell', mine_sell: 'Mine Sale', expense: 'Expense', balance_adjust: 'Adjust', write_off: 'Write-off' };
 
-export function TransactionItem({ tx, onDelete, showDelete }) {
+interface TransactionItemProps {
+  tx: Transaction;
+  onDelete?: (id: string) => void;
+  showDelete?: boolean;
+}
+
+export function TransactionItem({ tx, onDelete, showDelete }: TransactionItemProps) {
   const vis = TX_VISUAL[tx.type] || TX_VISUAL.buy;
   const bg = TX_BG[tx.type] || TX_BG.buy;
   const label = TX_LABEL[tx.type] || tx.type;
   const isNegative = tx.totalAmount < 0;
   const displayAmount = tx.type === 'balance_adjust'
-    ? (tx.adjustment >= 0 ? `+${formatCurrencyFull(tx.adjustment)}` : formatCurrencyFull(tx.adjustment))
+    ? (tx.adjustment! >= 0 ? `+${formatCurrencyFull(tx.adjustment)}` : formatCurrencyFull(tx.adjustment))
     : tx.type === 'write_off'
       ? `-${formatCurrencyFull(tx.lossAmount || 0)}`
       : (isNegative ? `-${formatCurrencyFull(Math.abs(tx.totalAmount))}` : `+${formatCurrencyFull(tx.totalAmount)}`);
-  const isPositiveAmount = tx.type === 'balance_adjust' ? tx.adjustment >= 0 : tx.type === 'write_off' ? false : !isNegative;
+  const isPositiveAmount = tx.type === 'balance_adjust' ? (tx.adjustment || 0) >= 0 : tx.type === 'write_off' ? false : !isNegative;
 
   let name = tx.description || tx.asset || label;
-  let metaParts = [`${label}`];
+  let metaParts: string[] = [`${label}`];
   if (tx.quantity) metaParts.push(`${tx.quantity}x`);
   metaParts.push(formatDate(tx.date));
   if (tx.note) metaParts.push(`· ${tx.note}`);
   if (tx.type === 'sell') {
     if (tx.source === 'mined') {
-      metaParts.push(`· Mined · +${formatCurrencyFull(tx.profit)}`);
+      metaParts.push(`· Mined · +${formatCurrencyFull(tx.profit!)}`);
     } else if (tx.profit !== undefined) {
       metaParts.push(`· P&L: ${tx.profit >= 0 ? '+' : ''}${formatCurrencyFull(tx.profit)}`);
     }
@@ -264,8 +300,8 @@ export function TransactionItem({ tx, onDelete, showDelete }) {
       margin: '0 -4px',
       padding: '10px 4px',
     }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hover)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-hover)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
     >
       <div style={{
         width: 32, height: 32, borderRadius: 'var(--radius-sm)',
@@ -292,8 +328,8 @@ export function TransactionItem({ tx, onDelete, showDelete }) {
             transition: 'all var(--transition)', flexShrink: 0,
             fontFamily: 'inherit', opacity: 0.5,
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--red-bg)'; e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.opacity = 1; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.opacity = 0.5; }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--red-bg)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--red)'; (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLButtonElement).style.opacity = '0.5'; }}
         >✕</button>
       )}
     </div>
@@ -301,7 +337,15 @@ export function TransactionItem({ tx, onDelete, showDelete }) {
 }
 
 /* --- Quick Action Button --- */
-export function QuickActionBtn({ icon, label, color, onClick }) {
+
+interface QuickActionBtnProps {
+  icon: string;
+  label: string;
+  color: string;
+  onClick: () => void;
+}
+
+export function QuickActionBtn({ icon, label, color, onClick }: QuickActionBtnProps) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: '10px',
@@ -316,16 +360,18 @@ export function QuickActionBtn({ icon, label, color, onClick }) {
       lineHeight: 1,
     }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = color;
-        e.currentTarget.style.color = color;
-        e.currentTarget.style.background = `${color}08`;
-        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.borderColor = color;
+        el.style.color = color;
+        el.style.background = `${color}08`;
+        el.style.boxShadow = 'var(--shadow-sm)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'var(--border)';
-        e.currentTarget.style.color = 'var(--text-secondary)';
-        e.currentTarget.style.background = 'var(--surface)';
-        e.currentTarget.style.boxShadow = 'none';
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.borderColor = 'var(--border)';
+        el.style.color = 'var(--text-secondary)';
+        el.style.background = 'var(--surface)';
+        el.style.boxShadow = 'none';
       }}
     >
       <span style={{ fontSize: '1rem', color, lineHeight: 1 }}>{icon}</span>
@@ -334,8 +380,15 @@ export function QuickActionBtn({ icon, label, color, onClick }) {
   );
 }
 
-/* --- Section Card — minimal card container --- */
-export function SectionCard({ title, children, headerRight }) {
+/* --- Section Card --- */
+
+interface SectionCardProps {
+  title: string;
+  children: ReactNode;
+  headerRight?: ReactNode;
+}
+
+export function SectionCard({ title, children, headerRight }: SectionCardProps) {
   return (
     <div style={{
       background: 'var(--surface)',
@@ -363,11 +416,13 @@ export function SectionCard({ title, children, headerRight }) {
   );
 }
 
-/* ====================================================
-   PAGE SHELL — consistent page wrapper
-   ==================================================== */
+/* --- Page Shell --- */
 
-export function PageShell({ children }) {
+interface PageShellProps {
+  children: ReactNode;
+}
+
+export function PageShell({ children }: PageShellProps) {
   return (
     <div className="page">
       <div style={{ maxWidth: 1120, margin: '0 auto', padding: 'var(--space-xl) var(--space-xl) var(--space-3xl)' }}>
@@ -377,11 +432,15 @@ export function PageShell({ children }) {
   );
 }
 
-/* ====================================================
-   PAGE HEADER — h1 + subtitle
-   ==================================================== */
+/* --- Page Header --- */
 
-export function PageHeader({ title, subtitle, marginBottom }) {
+interface PageHeaderProps {
+  title: string;
+  subtitle?: string;
+  marginBottom?: string | number;
+}
+
+export function PageHeader({ title, subtitle, marginBottom }: PageHeaderProps) {
   return (
     <div style={{ marginBottom: marginBottom ?? 'var(--space-xl)' }}>
       <h1 style={{
@@ -389,18 +448,24 @@ export function PageHeader({ title, subtitle, marginBottom }) {
         fontWeight: 720, fontSize: '1.65rem',
         color: 'var(--text)', letterSpacing: '-0.015em',
       }}>{title}</h1>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
+      {subtitle && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
         {subtitle}
-      </p>
+      </p>}
     </div>
   );
 }
 
-/* ====================================================
-   EMPTY STATE — icon + heading + message
-   ==================================================== */
+/* --- Empty State --- */
 
-export function EmptyState({ icon, iconStyle, title, message, messageStyle }) {
+interface EmptyStateProps {
+  icon: string;
+  iconStyle?: React.CSSProperties;
+  title: string;
+  message: string;
+  messageStyle?: React.CSSProperties;
+}
+
+export function EmptyState({ icon, iconStyle, title, message, messageStyle }: EmptyStateProps) {
   return (
     <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
       <div style={{
@@ -417,11 +482,15 @@ export function EmptyState({ icon, iconStyle, title, message, messageStyle }) {
   );
 }
 
-/* ====================================================
-   FORM FIELD — label + input wrapper
-   ==================================================== */
+/* --- Form Field --- */
 
-export function FormField({ label, children, labelStyle }) {
+interface FormFieldProps {
+  label: ReactNode;
+  children: ReactNode;
+  labelStyle?: React.CSSProperties;
+}
+
+export function FormField({ label, children, labelStyle }: FormFieldProps) {
   return (
     <div>
       <label style={{
@@ -433,11 +502,16 @@ export function FormField({ label, children, labelStyle }) {
   );
 }
 
-/* ====================================================
-   FILTER CHIPS — pill-style filter buttons
-   ==================================================== */
+/* --- Filter Chips --- */
 
-export function FilterChips({ options, value, onChange, labelMap }) {
+interface FilterChipsProps {
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+  labelMap?: Record<string, string>;
+}
+
+export function FilterChips({ options, value, onChange, labelMap }: FilterChipsProps) {
   return (
     <div style={{
       display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center',
@@ -461,18 +535,26 @@ export function FilterChips({ options, value, onChange, labelMap }) {
   );
 }
 
-/* ====================================================
-   CATEGORY CONSTANTS (Ore)
-   ==================================================== */
+/* --- Category Constants --- */
 
-const CATEGORY_ICONS = { shallow: '⬆', deep: '⬇', nether: '🔥' };
-const CATEGORY_LABELS = { shallow: 'Shallow', deep: 'Deep', nether: 'Nether' };
+const CATEGORY_ICONS: Record<string, string> = { shallow: '⬆', deep: '⬇', nether: '🔥' };
+const CATEGORY_LABELS: Record<string, string> = { shallow: 'Shallow', deep: 'Deep', nether: 'Nether' };
 
-/* ====================================================
-   ORE SELECTOR — grouped dropdown + holdings info
-   ==================================================== */
+/* --- Ore Selector --- */
 
-export function OreSelector({ txType, saleSource, oreId, availableOres, groupedOres, currentHolding, costAnalysis, onOreIdChange, formatCurrencyFull }) {
+interface OreSelectorProps {
+  txType: TxType;
+  saleSource: string;
+  oreId: string;
+  availableOres: Ore[];
+  groupedOres: Record<string, Ore[]>;
+  currentHolding: { quantity: number; totalCost: number; avgCost: number };
+  costAnalysis: OreCostAnalysis;
+  onOreIdChange: (id: string) => void;
+  formatCurrencyFull: (n?: number | null) => string;
+}
+
+export function OreSelector({ txType, saleSource, oreId, availableOres, groupedOres, currentHolding, costAnalysis, onOreIdChange, formatCurrencyFull: fmt }: OreSelectorProps) {
   return (
     <div>
       <label style={{
@@ -500,7 +582,7 @@ export function OreSelector({ txType, saleSource, oreId, availableOres, groupedO
           fontFamily: "'Instrument Sans', sans-serif",
         }}>
           <option value="">Select an ore...</option>
-          {['shallow', 'deep', 'nether'].map(cat =>
+          {(['shallow', 'deep', 'nether'] as const).map(cat =>
             groupedOres[cat] && groupedOres[cat].length > 0 ? (
               <optgroup key={cat} label={`${CATEGORY_ICONS[cat]} ${CATEGORY_LABELS[cat]}`}>
                 {groupedOres[cat].map(o => (
@@ -513,11 +595,11 @@ export function OreSelector({ txType, saleSource, oreId, availableOres, groupedO
       )}
       {txType === 'sell' && oreId && saleSource === 'portfolio' && (
         <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.7 }}>
-          <div>Holding: {currentHolding.quantity} units &middot; Avg cost: {formatCurrencyFull(currentHolding.avgCost)}</div>
+          <div>Holding: {currentHolding.quantity} units &middot; Avg cost: {fmt(currentHolding.avgCost)}</div>
           {costAnalysis.count > 0 && (
             <div>
-              {costAnalysis.count} buy{costAnalysis.count > 1 ? 's' : ''} &middot; Range: {formatCurrencyFull(costAnalysis.minPrice)} ~ {formatCurrencyFull(costAnalysis.maxPrice)}
-              &middot; Latest buy: {formatCurrencyFull(costAnalysis.latestPrice)}
+              {costAnalysis.count} buy{costAnalysis.count > 1 ? 's' : ''} &middot; Range: {fmt(costAnalysis.minPrice)} ~ {fmt(costAnalysis.maxPrice)}
+              &middot; Latest buy: {fmt(costAnalysis.latestPrice)}
             </div>
           )}
         </div>
@@ -531,11 +613,21 @@ export function OreSelector({ txType, saleSource, oreId, availableOres, groupedO
   );
 }
 
-/* ====================================================
-   HOLDINGS TABLE — portfolio table with inline editing
-   ==================================================== */
+/* --- Holdings Table --- */
 
-export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange, formatCurrencyFull }) {
+interface HoldingsTableProps {
+  portfolio: PortfolioEntryWithMeta[];
+  getAnalysis: (id: string) => OreCostAnalysis;
+  editOreId: string | null;
+  editValue: string;
+  onStartEdit: (id: string, qty: number) => void;
+  onConfirmEdit: (id: string) => void;
+  onCancelEdit: () => void;
+  onEditValueChange: (val: string) => void;
+  formatCurrencyFull: (n?: number | null) => string;
+}
+
+export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange, formatCurrencyFull: fmt }: HoldingsTableProps) {
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -557,7 +649,7 @@ export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, on
             const analysis = getAnalysis(p.id);
             const hasRange = analysis.count > 0;
             const rangeStr = hasRange
-              ? `${formatCurrencyFull(analysis.minPrice)} ~ ${formatCurrencyFull(analysis.maxPrice)}`
+              ? `${fmt(analysis.minPrice)} ~ ${fmt(analysis.maxPrice)}`
               : '-';
             return (
               <tr key={p.id}>
@@ -591,7 +683,7 @@ export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, on
                     <span title="Click to adjust quantity">{p.quantity}</span>
                   )}
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{formatCurrencyFull(p.avgCost)}</td>
+                <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{fmt(p.avgCost)}</td>
                 <td style={{ padding: '12px 16px', fontSize: '1rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 580, textAlign: 'right', borderBottom: '1px solid var(--border-light)' }}>{hasRange ? analysis.count : '-'}</td>
                 <td style={{ padding: '12px 16px', fontSize: '0.85rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 520, textAlign: 'right', borderBottom: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>{rangeStr}</td>
                 <td style={{
@@ -611,14 +703,12 @@ export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, on
   );
 }
 
-/* ====================================================
-   ORE REFERENCE — categorized ore list
-   ==================================================== */
+/* --- Ore Reference --- */
 
 export function OreReference() {
   return (
     <div style={{ fontSize: '0.82rem' }}>
-      {['shallow', 'deep', 'nether'].map(cat => (
+      {(['shallow', 'deep', 'nether'] as const).map(cat => (
         <div key={cat} style={{ marginBottom: 14 }}>
           <div style={{
             fontWeight: 620, fontSize: '0.82rem',
@@ -637,10 +727,17 @@ export function OreReference() {
 }
 
 /* ====================================================
-   DASHBOARD VIEW — cards + quick actions + recent
+   DASHBOARD VIEW
    ==================================================== */
 
-export function DashboardView({ summary, recentTransactions, onNavigate, deleteTransaction }) {
+interface DashboardViewProps {
+  summary: LedgerSummary;
+  recentTransactions: Transaction[];
+  onNavigate: (page: string, type?: string) => void;
+  deleteTransaction: (id: string) => void;
+}
+
+export function DashboardView({ summary, recentTransactions, onNavigate, deleteTransaction }: DashboardViewProps) {
   return (
     <PageShell>
       <PageHeader title="Dashboard" subtitle="Overview of your ore stock market activity" />
@@ -673,8 +770,8 @@ export function DashboardView({ summary, recentTransactions, onNavigate, deleteT
           fontSize: '0.88rem', color: 'var(--text-muted)', fontFamily: 'inherit', fontWeight: 560,
           transition: 'all var(--transition)',
         }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; }}
         >View All</button>
       }>
         {recentTransactions.length === 0 ? (
@@ -690,10 +787,18 @@ export function DashboardView({ summary, recentTransactions, onNavigate, deleteT
 }
 
 /* ====================================================
-   TRANSACTIONS VIEW — filter chips + transaction list
+   TRANSACTIONS VIEW
    ==================================================== */
 
-export function TransactionsView({ filtered, filterType, onFilterTypeChange, onNavigate, deleteTransaction }) {
+interface TransactionsViewProps {
+  filtered: Transaction[];
+  filterType: string;
+  onFilterTypeChange: (type: string) => void;
+  onNavigate: (page: string, type?: string) => void;
+  deleteTransaction: (id: string) => void;
+}
+
+export function TransactionsView({ filtered, filterType, onFilterTypeChange, onNavigate, deleteTransaction }: TransactionsViewProps) {
   return (
     <PageShell>
       <PageHeader title="Transactions" subtitle="Complete history of all your financial activities" marginBottom={24} />
@@ -712,8 +817,8 @@ export function TransactionsView({ filtered, filterType, onFilterTypeChange, onN
           fontSize: '0.9rem', color: '#fff', fontFamily: 'inherit', fontWeight: 620,
           transition: 'all var(--transition)',
         }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-dark)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-dark)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)'; }}
         >+ New Entry</button>
       }>
         {filtered.length === 0 ? (
@@ -732,10 +837,23 @@ export function TransactionsView({ filtered, filterType, onFilterTypeChange, onN
 }
 
 /* ====================================================
-   PORTFOLIO VIEW — summary cards + holdings table
+   PORTFOLIO VIEW
    ==================================================== */
 
-export function PortfolioView({ summary, totalCost, activePortfolio, getOreCostAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange }) {
+interface PortfolioViewProps {
+  summary: LedgerSummary;
+  totalCost: number;
+  activePortfolio: PortfolioEntryWithMeta[];
+  getOreCostAnalysis: (id: string) => OreCostAnalysis;
+  editOreId: string | null;
+  editValue: string;
+  onStartEdit: (id: string, qty: number) => void;
+  onConfirmEdit: (id: string) => void;
+  onCancelEdit: () => void;
+  onEditValueChange: (val: string) => void;
+}
+
+export function PortfolioView({ summary, totalCost, activePortfolio, getOreCostAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange }: PortfolioViewProps) {
   return (
     <PageShell>
       <PageHeader title="Portfolio" subtitle="Your current ore holdings and cost basis" marginBottom={24} />
@@ -777,10 +895,10 @@ export function PortfolioView({ summary, totalCost, activePortfolio, getOreCostA
 }
 
 /* ====================================================
-   NEW ENTRY VIEW — transaction form
+   NEW ENTRY VIEW
    ==================================================== */
 
-const INPUT_STYLE = {
+const INPUT_STYLE: React.CSSProperties = {
   width: '100%', padding: '9px 14px',
   borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
   background: 'var(--surface)', color: 'var(--text)', fontSize: '1rem',
@@ -788,13 +906,52 @@ const INPUT_STYLE = {
 };
 
 const QUICK_QTY = [1, 16, 64];
-const TYPE_BTNS = [
+
+interface TypeBtn {
+  type: TxType;
+  icon: string;
+  label: string;
+  color: string;
+}
+
+const TYPE_BTNS: TypeBtn[] = [
   { type: 'buy', icon: '↓', label: 'Buy', color: 'var(--green)' },
   { type: 'sell', icon: '↑', label: 'Sell', color: 'var(--blue)' },
   { type: 'mine_sell', icon: '⛏', label: 'Mine Sale', color: 'var(--amber)' },
   { type: 'expense', icon: '✕', label: 'Expense', color: 'var(--red)' },
   { type: 'balance_adjust', icon: '⟳', label: 'Adjust', color: 'var(--accent)' },
 ];
+
+interface NewEntryViewProps {
+  txType: TxType;
+  onTxTypeChange: (type: TxType) => void;
+  saleSource: string;
+  onSaleSourceChange: (source: 'portfolio' | 'mined') => void;
+  date: string;
+  onDateChange: (date: string) => void;
+  oreId: string;
+  onOreIdChange: (id: string) => void;
+  quantity: string;
+  onQuantityChange: (qty: string) => void;
+  unitPrice: string;
+  onUnitPriceChange: (price: string) => void;
+  description: string;
+  onDescriptionChange: (desc: string) => void;
+  newBalance: string;
+  onNewBalanceChange: (balance: string) => void;
+  note: string;
+  onNoteChange: (note: string) => void;
+  formError: string;
+  calculatedTotal: number;
+  adjustmentDelta: number | null;
+  estimatedProfit: number | null;
+  availableOres: Ore[];
+  groupedOres: Record<string, Ore[]>;
+  currentHolding: { quantity: number; totalCost: number; avgCost: number };
+  costAnalysis: OreCostAnalysis;
+  onSubmit: () => void;
+  currentCash: number;
+}
 
 export function NewEntryView({
   txType, onTxTypeChange,
@@ -811,7 +968,7 @@ export function NewEntryView({
   availableOres, groupedOres,
   currentHolding, costAnalysis,
   onSubmit, currentCash,
-}) {
+}: NewEntryViewProps) {
   return (
     <PageShell>
       <PageHeader title="New Entry" subtitle="Record a new transaction or activity" marginBottom={24} />
@@ -841,6 +998,7 @@ export function NewEntryView({
           <FormField label="Date" labelStyle={{ letterSpacing: '0.01em' }}>
             <input type="date" value={date} onChange={e => onDateChange(e.target.value)} style={{
               ...INPUT_STYLE,
+              color: 'var(--text)',
               transition: 'border-color var(--transition)',
               fontFamily: "'Instrument Sans', sans-serif",
             }} />
@@ -909,8 +1067,8 @@ export function NewEntryView({
                     fontSize: '0.9rem', fontWeight: 520, color: 'var(--text-muted)',
                     fontFamily: 'inherit', transition: 'all var(--transition)',
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; }}
                   >{q}</button>
                 ))}
                 {txType === 'sell' && oreId && (
@@ -1023,8 +1181,8 @@ export function NewEntryView({
             transition: 'all var(--transition)',
             letterSpacing: '0.01em',
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-dark)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-dark)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)'; }}
           >
             Record {TX_LABEL[txType] || 'Transaction'}
           </button>

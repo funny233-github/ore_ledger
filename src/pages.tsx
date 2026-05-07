@@ -1,13 +1,20 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useLedger, useToast, formatCurrencyFull } from './utils.jsx';
-import { ORES } from './data.js';
-import { DashboardView, TransactionsView, PortfolioView, NewEntryView } from './components.jsx';
+import { useLedger, useToast, formatCurrencyFull } from './utils';
+import type { UseLedgerReturn } from './utils';
+import { ORES } from './data';
+import type { Ore, TxType } from './data';
+import { DashboardView, TransactionsView, PortfolioView, NewEntryView } from './components';
 
 /* ====================================================
    DASHBOARD PAGE
    ==================================================== */
 
-export function DashboardPage({ ledger, onNavigate }) {
+interface DashboardPageProps {
+  ledger: UseLedgerReturn;
+  onNavigate: (page: string, type?: string) => void;
+}
+
+export function DashboardPage({ ledger, onNavigate }: DashboardPageProps) {
   const { summary, recentTransactions } = ledger;
   return (
     <DashboardView
@@ -23,9 +30,14 @@ export function DashboardPage({ ledger, onNavigate }) {
    TRANSACTIONS PAGE
    ==================================================== */
 
-export function TransactionsPage({ ledger, onNavigate }) {
+interface TransactionsPageProps {
+  ledger: UseLedgerReturn;
+  onNavigate: (page: string, type?: string) => void;
+}
+
+export function TransactionsPage({ ledger, onNavigate }: TransactionsPageProps) {
   const { transactions } = ledger;
-  const [filterType, setFilterType] = useState('all');
+  const [filterType, setFilterType] = useState<string>('all');
 
   const filtered = useMemo(() => {
     if (filterType === 'all') return transactions;
@@ -47,20 +59,24 @@ export function TransactionsPage({ ledger, onNavigate }) {
    PORTFOLIO PAGE
    ==================================================== */
 
-export function PortfolioPage({ ledger }) {
+interface PortfolioPageProps {
+  ledger: UseLedgerReturn;
+}
+
+export function PortfolioPage({ ledger }: PortfolioPageProps) {
   const { summary, activePortfolio, getOreCostAnalysis, adjustQuantity } = ledger;
   const toast = useToast();
-  const [editOreId, setEditOreId] = useState(null);
+  const [editOreId, setEditOreId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
   const totalCost = activePortfolio.reduce((s, p) => s + p.totalCost, 0);
 
-  const startEdit = (oreId, currentQty) => {
+  const startEdit = (oreId: string, currentQty: number) => {
     setEditOreId(oreId);
     setEditValue(String(currentQty));
   };
 
-  const confirmEdit = (oreId) => {
+  const confirmEdit = (oreId: string) => {
     const newQty = parseInt(editValue, 10);
     if (!newQty || newQty < 0) {
       toast('Invalid quantity', 'error');
@@ -100,21 +116,25 @@ export function PortfolioPage({ ledger }) {
    NEW ENTRY PAGE
    ==================================================== */
 
-export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
+interface NewEntryPageProps {
+  ledger: UseLedgerReturn;
+  preselectedType?: TxType;
+  onNavigate: (page: string, type?: string) => void;
+}
+
+export function NewEntryPage({ ledger, preselectedType, onNavigate }: NewEntryPageProps) {
   const { getOreHolding, getOreCostAnalysis, addTransaction } = ledger;
   const toast = useToast();
-  const [txType, setTxType] = useState(preselectedType || 'buy');
-  const [saleSource, setSaleSource] = useState('portfolio');
+  const [txType, setTxType] = useState<TxType>(preselectedType || 'buy');
+  const [saleSource, setSaleSource] = useState<'portfolio' | 'mined'>('portfolio');
   const [formError, setFormError] = useState('');
 
-  // Sync txType when preselectedType changes (e.g., quick action from Dashboard)
   useEffect(() => {
     if (preselectedType && preselectedType !== txType) {
       setTxType(preselectedType);
     }
   }, [preselectedType]);
 
-  // Form fields (shared)
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [oreId, setOreId] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -123,7 +143,6 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
   const [newBalance, setNewBalance] = useState('');
   const [note, setNote] = useState('');
 
-  // Reset form when type changes
   useEffect(() => {
     setOreId('');
     setQuantity('');
@@ -134,8 +153,7 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
     setSaleSource('portfolio');
   }, [txType]);
 
-  // Filter ores for sell: only owned ores for portfolio, all ores for mined
-  const availableOres = useMemo(() => {
+  const availableOres = useMemo((): Ore[] => {
     if (txType === 'sell') {
       if (saleSource === 'mined') return ORES;
       return ORES.filter(o => {
@@ -146,21 +164,18 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
     return ORES;
   }, [txType, saleSource, getOreHolding]);
 
-  // Group ores by category
-  const groupedOres = useMemo(() => {
-    const groups = { shallow: [], deep: [], nether: [] };
+  const groupedOres = useMemo((): Record<string, Ore[]> => {
+    const groups: Record<string, Ore[]> = { shallow: [], deep: [], nether: [] };
     availableOres.forEach(o => {
       if (groups[o.category]) groups[o.category].push(o);
     });
     return groups;
   }, [availableOres]);
 
-  // Holdings info for sell
   const currentHolding = getOreHolding(oreId);
   const costAnalysis = getOreCostAnalysis(oreId);
 
-  // Auto-calculated total
-  const calculatedTotal = useMemo(() => {
+  const calculatedTotal = useMemo((): number => {
     const q = parseFloat(quantity) || 0;
     const p = parseFloat(unitPrice) || 0;
     const total = q * p;
@@ -168,33 +183,28 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
     return total;
   }, [quantity, unitPrice, txType]);
 
-  // Balance adjust auto-delta
-  const adjustmentDelta = useMemo(() => {
+  const adjustmentDelta = useMemo((): number | null => {
     if (txType !== 'balance_adjust') return null;
     const nb = parseFloat(newBalance);
     if (isNaN(nb)) return null;
     return nb - ledger.summary.cash;
   }, [newBalance, txType, ledger.summary.cash]);
 
-  // Estimated profit for sell
-  const estimatedProfit = useMemo(() => {
+  const estimatedProfit = useMemo((): number | null => {
     if (txType !== 'sell' || !oreId || !quantity) return null;
     const q = parseFloat(quantity) || 0;
     const p = parseFloat(unitPrice) || 0;
     const received = q * p;
-    if (saleSource === 'mined') return received; // Full amount is profit (mined)
+    if (saleSource === 'mined') return received;
     const cost = q * currentHolding.avgCost;
     return received - cost;
   }, [txType, saleSource, oreId, quantity, unitPrice, currentHolding]);
 
-  // Quick quantity buttons
   const QUICK_QTY = [1, 16, 64];
 
-  // Form submission handler
   const handleSubmit = useCallback(() => {
     setFormError('');
 
-    // Validate
     if (!date) { setFormError('Date is required'); return; }
 
     if (txType === 'buy' || txType === 'sell' || txType === 'mine_sell') {
@@ -220,7 +230,6 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
       if (isNaN(nb) || nb < 0) { setFormError('Please enter a valid cash balance'); return; }
     }
 
-    // Build transaction object
     let totalAmount = 0;
     const q = parseInt(quantity, 10);
     const p = parseFloat(unitPrice);
@@ -237,7 +246,7 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
         totalAmount = -Math.abs(parseFloat(unitPrice));
         break;
       case 'balance_adjust':
-        totalAmount = 0; // not used for adjust
+        totalAmount = 0;
         break;
     }
 
@@ -255,22 +264,20 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }) {
     };
 
     const success = addTransaction(tx);
-    if (success === false || success === undefined) {
+    if (success === false) {
       setFormError('Failed to record transaction. Check portfolio holdings.');
       return;
     }
 
     toast('Transaction recorded successfully', 'success');
 
-    // Reset form
     setOreId(''); setQuantity(''); setUnitPrice(''); setDescription('');
     setNewBalance(''); setNote('');
     setDate(new Date().toISOString().split('T')[0]);
     setFormError('');
 
-    // Navigate to transactions page
     setTimeout(() => onNavigate('transactions'), 1000);
-  }, [txType, date, oreId, quantity, unitPrice, description, newBalance, note, addTransaction, getOreHolding, toast, onNavigate]);
+  }, [txType, date, oreId, quantity, unitPrice, description, newBalance, note, addTransaction, getOreHolding, toast, onNavigate, saleSource]);
 
   return (
     <NewEntryView

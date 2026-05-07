@@ -1,25 +1,35 @@
 import { useState, useCallback, useMemo, useEffect, useRef, createContext, useContext } from 'react';
-import { Storage } from './storage.js';
-import { LedgerEngine, r2 } from './engine.js';
-import { ORES, generateId } from './data.js';
+import type { ReactNode } from 'react';
+import { Storage } from './storage';
+import { LedgerEngine, r2 } from './engine';
+import { ORES } from './data';
+import type {
+  TxType,
+  Transaction,
+  TransactionInput,
+  PortfolioEntry,
+  PortfolioEntryWithMeta,
+  LedgerState,
+  LedgerSummary,
+} from './data';
 
 /* ====================================================
    UTILITY FUNCTIONS
    ==================================================== */
 
-export const formatDate = (d) => {
+export const formatDate = (d?: number | string | null): string => {
   if (!d) return '';
   const date = new Date(d);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-export const formatCurrency = (n) => {
+export const formatCurrency = (n?: number | null): string => {
   if (n === undefined || n === null) return '0.0';
   const abs = Math.abs(n).toFixed(1);
   return n < 0 ? `-${abs}` : abs;
 };
 
-export const formatCurrencyFull = (n) => {
+export const formatCurrencyFull = (n?: number | null): string => {
   if (n === undefined || n === null) return '0.00';
   return n.toFixed(2);
 };
@@ -28,14 +38,18 @@ export const formatCurrencyFull = (n) => {
    TOAST NOTIFICATION SYSTEM
    ==================================================== */
 
-const ToastContext = createContext(null);
+type ToastType = 'success' | 'error' | 'info';
 
-export function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([]);
+export type ToastFn = (message: string, type?: ToastType, duration?: number) => void;
+
+const ToastContext = createContext<ToastFn | null>(null);
+
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: ToastType }>>([]);
   const toastId = useRef(0);
-  const exiting = useRef(new Set());
+  const exiting = useRef(new Set<number>());
 
-  const addToast = useCallback((message, type = 'success', duration = 3000) => {
+  const addToast = useCallback((message: string, type: ToastType = 'success', duration = 3000) => {
     const id = ++toastId.current;
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
@@ -44,11 +58,11 @@ export function ToastProvider({ children }) {
     }, duration);
   }, []);
 
-  const removeToast = useCallback((id) => {
+  const removeToast = useCallback((id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const colorMap = {
+  const colorMap: Record<ToastType, string> = {
     success: 'var(--green)',
     error: 'var(--red)',
     info: 'var(--accent)',
@@ -88,7 +102,7 @@ export function ToastProvider({ children }) {
   );
 }
 
-export function useToast() {
+export function useToast(): ToastFn {
   const ctx = useContext(ToastContext);
   return ctx || (() => {});
 }
@@ -97,18 +111,45 @@ export function useToast() {
    HOOKS & STATE MANAGEMENT
    ==================================================== */
 
-export const NAV_ITEMS = [
+export interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard',     label: 'Dashboard',     icon: '◈' },
   { id: 'transactions',  label: 'Transactions',  icon: '↕' },
   { id: 'portfolio',     label: 'Portfolio',     icon: '⊞' },
   { id: 'new-entry',     label: 'New Entry',     icon: '+'  },
 ];
 
-export function useLedger() {
-  const [state, setState] = useState(() => Storage.loadState());
-  const saveTimerRef = useRef(null);
+export interface OreCostAnalysis {
+  count: number;
+  minPrice: number;
+  maxPrice: number;
+  latestPrice: number;
+  avgCost: number;
+  vsLatest: number;
+}
 
-  // Auto-save with debounce
+export interface UseLedgerReturn {
+  state: LedgerState;
+  summary: LedgerSummary;
+  transactions: Transaction[];
+  recentTransactions: Transaction[];
+  activePortfolio: PortfolioEntryWithMeta[];
+  addTransaction: (tx: TransactionInput) => boolean;
+  deleteTransaction: (txId: string) => void;
+  getOreHolding: (oreId: string) => PortfolioEntry;
+  getOreCostAnalysis: (oreId: string) => OreCostAnalysis;
+  adjustQuantity: (oreId: string, newQuantity: number) => boolean;
+}
+
+export function useLedger(): UseLedgerReturn {
+  const [state, setState] = useState<LedgerState>(() => Storage.loadState());
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -121,9 +162,9 @@ export function useLedger() {
 
   const summary = useMemo(() => LedgerEngine.computeSummary(state), [state]);
 
-  const addTransaction = useCallback((tx) => {
+  const addTransaction = useCallback((tx: TransactionInput): boolean => {
     const result = LedgerEngine.process(state, tx);
-    if (result.error) {
+    if ('error' in result) {
       console.warn('Ore Ledger: Transaction rejected:', result.error);
       return false;
     }
@@ -131,21 +172,20 @@ export function useLedger() {
     return true;
   }, [state]);
 
-  const deleteTransaction = useCallback((txId) => {
+  const deleteTransaction = useCallback((txId: string) => {
     setState(prev => {
       const tx = prev.transactions.find(t => t.id === txId);
       if (!tx) return prev;
 
-      const s = structuredClone(prev);
+      const s: LedgerState = structuredClone(prev);
       s.transactions = s.transactions.filter(t => t.id !== txId);
 
-      // Reverse effects
       switch (tx.type) {
         case 'buy': {
-          const assetId = tx.asset;
+          const assetId = tx.asset!;
           const totalPaid = Math.abs(tx.totalAmount);
           if (s.portfolio[assetId]) {
-            s.portfolio[assetId].quantity -= tx.quantity;
+            s.portfolio[assetId].quantity -= tx.quantity!;
             s.portfolio[assetId].totalCost -= totalPaid;
             if (s.portfolio[assetId].quantity <= 0) {
               delete s.portfolio[assetId];
@@ -157,13 +197,13 @@ export function useLedger() {
           break;
         }
         case 'sell': {
-          const assetId = tx.asset;
+          const assetId = tx.asset!;
           if (!s.portfolio[assetId]) {
             s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
           }
           const p = s.portfolio[assetId];
-          p.quantity += tx.quantity;
-          p.totalCost += tx.costOfSold || (tx.quantity * (tx.avgCostAtSale || 0));
+          p.quantity += tx.quantity!;
+          p.totalCost += tx.costOfSold || (tx.quantity! * (tx.avgCostAtSale || 0));
           p.avgCost = p.quantity > 0 ? r2(p.totalCost / p.quantity) : 0;
           s.cash -= tx.totalAmount;
           s.metadata.totalSpeculativeProfit -= (tx.profit || 0);
@@ -186,15 +226,15 @@ export function useLedger() {
           break;
         }
         case 'write_off': {
-          const assetId = tx.asset;
+          const assetId = tx.asset!;
           const lossAmount = tx.lossAmount || 0;
           if (!s.portfolio[assetId]) {
             s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
           }
-          const p = s.portfolio[assetId];
-          p.quantity += tx.quantity;
-          p.totalCost += lossAmount;
-          p.avgCost = p.quantity > 0 ? r2(p.totalCost / p.quantity) : 0;
+          const wp = s.portfolio[assetId];
+          wp.quantity += tx.quantity!;
+          wp.totalCost += lossAmount;
+          wp.avgCost = wp.quantity > 0 ? r2(wp.totalCost / wp.quantity) : 0;
           break;
         }
       }
@@ -202,7 +242,6 @@ export function useLedger() {
     });
   }, []);
 
-  // Get transactions sorted by date DESC
   const sortedTransactions = useMemo(() => {
     return [...state.transactions].sort((a, b) => {
       if (a.date !== b.date) return b.date.localeCompare(a.date);
@@ -210,10 +249,9 @@ export function useLedger() {
     });
   }, [state.transactions]);
 
-  // Get portfolio items with positive quantity
-  const activePortfolio = useMemo(() => {
+  const activePortfolio = useMemo((): PortfolioEntryWithMeta[] => {
     return Object.entries(state.portfolio)
-      .filter(([id, p]) => p.quantity > 0)
+      .filter(([_id, p]) => p.quantity > 0)
       .map(([id, p]) => {
         const ore = ORES.find(o => o.id === id);
         return {
@@ -227,11 +265,11 @@ export function useLedger() {
       });
   }, [state.portfolio]);
 
-  const getOreHolding = useCallback((oreId) => {
+  const getOreHolding = useCallback((oreId: string): PortfolioEntry => {
     return state.portfolio[oreId] || { quantity: 0, totalCost: 0, avgCost: 0 };
   }, [state.portfolio]);
 
-  const getOreCostAnalysis = useCallback((oreId) => {
+  const getOreCostAnalysis = useCallback((oreId: string): OreCostAnalysis => {
     const buys = state.transactions
       .filter(t => t.type === 'buy' && t.asset === oreId)
       .sort((a, b) => {
@@ -239,9 +277,9 @@ export function useLedger() {
         return (a.createdAt || 0) - (b.createdAt || 0);
       });
     if (buys.length === 0) {
-      return { count: 0, minPrice: 0, maxPrice: 0, latestPrice: 0, avgCost: 0 };
+      return { count: 0, minPrice: 0, maxPrice: 0, latestPrice: 0, avgCost: 0, vsLatest: 0 };
     }
-    const prices = buys.map(t => t.unitPrice);
+    const prices = buys.map(t => t.unitPrice!);
     const latestPrice = prices[prices.length - 1];
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
@@ -251,7 +289,7 @@ export function useLedger() {
     return { count: buys.length, minPrice, maxPrice, latestPrice, avgCost, vsLatest };
   }, [state.transactions, state.portfolio]);
 
-  const adjustQuantity = useCallback((oreId, newQuantity) => {
+  const adjustQuantity = useCallback((oreId: string, newQuantity: number): boolean => {
     const holding = state.portfolio[oreId];
     if (!holding || holding.quantity <= 0) return false;
     const diff = holding.quantity - newQuantity;
@@ -266,7 +304,7 @@ export function useLedger() {
       date: new Date().toISOString().split('T')[0],
       note: `Inventory write-off: reduced from ${holding.quantity} to ${newQuantity}`,
     });
-    if (result.error) {
+    if ('error' in result) {
       console.warn('Ore Ledger: write-off rejected:', result.error);
       return false;
     }

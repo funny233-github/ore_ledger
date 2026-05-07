@@ -2,7 +2,7 @@
 
 A Minecraft ore stock market bookkeeping app — track your virtual ore trading portfolio, mining income, and expenses in a clean, Claude-inspired dark/light UI.
 
-> Built with Vite + React 18.
+> Built with Vite + React 18 + TypeScript.
 
 ## Features
 
@@ -36,15 +36,16 @@ ore_ledger/
 ├── index.html              # Entry point
 ├── styles.css              # All CSS (dark/light theme, layout, animations)
 ├── vite.config.js          # Vite config
+├── tsconfig.json           # TypeScript config (strict mode)
 ├── .github/workflows/      # GitHub Actions (auto-deploy to Pages)
 ├── src/
-│   ├── data.js             # Constants: ore types, transaction config, ID generator
-│   ├── storage.js          # localStorage read/write, import/export
-│   ├── engine.js           # Business logic: buy/sell/expense/adjust processing
-│   ├── utils.jsx           # Formatters, toast notification system, useLedger hook
-│   ├── components.jsx      # Reusable UI components (Sidebar, TopBar, cards, etc.)
-│   ├── pages.jsx           # Page-level components (Dashboard, Transactions, etc.)
-│   └── app.jsx             # App shell + ReactDOM mount
+│   ├── data.ts             # Type definitions, constants, ID generator
+│   ├── storage.ts          # localStorage read/write, import/export
+│   ├── engine.ts           # Business logic: buy/sell/expense/adjust processing
+│   ├── utils.tsx           # Formatters, toast notification system, useLedger hook
+│   ├── components.tsx      # Reusable UI components (Sidebar, TopBar, cards, etc.)
+│   ├── pages.tsx           # Page-level components (Dashboard, Transactions, etc.)
+│   └── app.tsx             # App shell + ReactDOM mount
 └── package.json
 ```
 
@@ -78,8 +79,9 @@ Push to `master` — GitHub Actions builds and deploys automatically.
 
 ## Tech Stack
 
-- [React 18](https://reactjs.org/) — UI framework (CDN, UMD build)
-- [Babel Standalone](https://babeljs.io/docs/babel-standalone) — In-browser JSX transpilation
+- [React 18](https://reactjs.org/) — UI framework
+- [Vite 5](https://vitejs.dev/) — Build tool with React plugin
+- [TypeScript](https://www.typescriptlang.org/) — Type safety (strict mode)
 - [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans) + [JetBrains Mono](https://www.jetbrains.com/lp/mono/) + [DM Serif Display](https://fonts.google.com/specimen/DM+Serif+Display) — Typography
 - OKLCH color space — Theme variables
 

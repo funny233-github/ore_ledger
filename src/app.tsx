@@ -1,9 +1,11 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useLedger, NAV_ITEMS, ToastProvider } from './utils.jsx';
-import { Storage } from './storage.js';
-import { Sidebar, TopBar } from './components.jsx';
-import { DashboardPage, TransactionsPage, PortfolioPage, NewEntryPage } from './pages.jsx';
+import { useLedger, NAV_ITEMS, ToastProvider } from './utils';
+import type { NavItem } from './utils';
+import type { TxType } from './data';
+import { Storage } from './storage';
+import { Sidebar, TopBar } from './components';
+import { DashboardPage, TransactionsPage, PortfolioPage, NewEntryPage } from './pages';
 
 /* ====================================================
    APP COMPONENT
@@ -11,25 +13,24 @@ import { DashboardPage, TransactionsPage, PortfolioPage, NewEntryPage } from './
 
 function App() {
   const [activeNav, setActiveNav] = useState('dashboard');
-  const [preselectedType, setPreselectedType] = useState(null);
-  const [theme, setTheme] = useState(() => {
+  const [preselectedType, setPreselectedType] = useState<string | null>(null);
+  const [theme, setTheme] = useState<string>(() => {
     try { return localStorage.getItem('ore_ledger_theme') || 'dark'; }
     catch { return 'dark'; }
   });
   const ledger = useLedger();
 
-  // Apply theme data attribute
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     try { localStorage.setItem('ore_ledger_theme', theme); }
-    catch { }
+    catch { /* ignore */ }
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   }, []);
 
-  const handleNavigate = useCallback((page, type) => {
+  const handleNavigate = useCallback((page: string, type?: string) => {
     setPreselectedType(type || null);
     setActiveNav(page);
   }, []);
@@ -53,7 +54,7 @@ function App() {
   }, []);
 
   const pageTitle = useMemo(() => {
-    const item = NAV_ITEMS.find(n => n.id === activeNav);
+    const item = NAV_ITEMS.find((n: NavItem) => n.id === activeNav);
     return item ? item.label : 'Dashboard';
   }, [activeNav]);
 
@@ -66,7 +67,7 @@ function App() {
       case 'portfolio':
         return <PortfolioPage ledger={ledger} />;
       case 'new-entry':
-        return <NewEntryPage ledger={ledger} preselectedType={preselectedType} onNavigate={handleNavigate} />;
+        return <NewEntryPage ledger={ledger} preselectedType={(preselectedType ?? undefined) as TxType | undefined} onNavigate={handleNavigate} />;
       default:
         return <DashboardPage ledger={ledger} onNavigate={handleNavigate} />;
     }
@@ -74,7 +75,7 @@ function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar activeNav={activeNav} onNavChange={(page) => handleNavigate(page)} onExport={handleExport} onClear={handleClear} theme={theme} onToggleTheme={toggleTheme} />
+      <Sidebar activeNav={activeNav} onNavChange={(page: string) => handleNavigate(page)} onExport={handleExport} onClear={handleClear} theme={theme} onToggleTheme={toggleTheme} />
       <div style={{ marginLeft: 'var(--sidebar-w)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <TopBar title={pageTitle} cashBalance={ledger.summary.cash} />
         {renderPage()}
@@ -87,7 +88,7 @@ function App() {
    MOUNT
    ==================================================== */
 
-const root = createRoot(document.getElementById('root'));
+const root = createRoot(document.getElementById('root')!);
 root.render(
   <ToastProvider>
     <App />
