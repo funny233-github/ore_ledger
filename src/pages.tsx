@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import type { JSX } from 'react';
 import { useToast } from './utils';
-import type { UseLedgerReturn, ToastFn, OreCostAnalysis } from './utils';
+import type { ToastFn, OreCostAnalysis, LedgerController } from './utils';
 import { ORES } from './data';
 import type { Ore, TxType, PortfolioEntry } from './data';
 import { DashboardView, TransactionsView, PortfolioView, NewEntryView } from './components';
@@ -11,15 +11,15 @@ import { DashboardView, TransactionsView, PortfolioView, NewEntryView } from './
    ======================================== */
 
 interface DashboardPageProps {
-  ledger: UseLedgerReturn;
+  ledger: LedgerController;
   onNavigate: (page: string, type?: string) => void;
 }
 
 class DashboardPageController {
-  private ledger!: UseLedgerReturn;
+  private ledger!: LedgerController;
   private onNavigate!: (page: string, type?: string) => void;
 
-  update(ledger: UseLedgerReturn, onNavigate: (page: string, type?: string) => void): void {
+  update(ledger: LedgerController, onNavigate: (page: string, type?: string) => void): void {
     this.ledger = ledger;
     this.onNavigate = onNavigate;
   }
@@ -50,12 +50,12 @@ export function DashboardPage({ ledger, onNavigate }: DashboardPageProps): JSX.E
    ======================================== */
 
 interface TransactionsPageProps {
-  ledger: UseLedgerReturn;
+  ledger: LedgerController;
   onNavigate: (page: string, type?: string) => void;
 }
 
 class TransactionsPageController {
-  private ledger!: UseLedgerReturn;
+  private ledger!: LedgerController;
   private onNavigate!: (page: string, type?: string) => void;
   private notify!: () => void;
   filterType: string = 'all';
@@ -64,7 +64,7 @@ class TransactionsPageController {
     this.notify = notify;
   }
 
-  update(ledger: UseLedgerReturn, onNavigate: (page: string, type?: string) => void): void {
+  update(ledger: LedgerController, onNavigate: (page: string, type?: string) => void): void {
     this.ledger = ledger;
     this.onNavigate = onNavigate;
   }
@@ -111,11 +111,11 @@ export function TransactionsPage({ ledger, onNavigate }: TransactionsPageProps):
    ======================================== */
 
 interface PortfolioPageProps {
-  ledger: UseLedgerReturn;
+  ledger: LedgerController;
 }
 
 class PortfolioPageController {
-  private ledger!: UseLedgerReturn;
+  private ledger!: LedgerController;
   private toast!: ToastFn;
   private notify!: () => void;
   editOreId: string | null = null;
@@ -126,7 +126,7 @@ class PortfolioPageController {
     this.notify = notify;
   }
 
-  update(ledger: UseLedgerReturn): void {
+  update(ledger: LedgerController): void {
     this.ledger = ledger;
   }
 
@@ -200,13 +200,13 @@ export function PortfolioPage({ ledger }: PortfolioPageProps): JSX.Element {
    ======================================== */
 
 interface NewEntryPageProps {
-  ledger: UseLedgerReturn;
+  ledger: LedgerController;
   preselectedType?: TxType;
   onNavigate: (page: string, type?: string) => void;
 }
 
 class NewEntryPageController {
-  private ledger!: UseLedgerReturn;
+  private ledger!: LedgerController;
   private onNavigate!: (page: string, type?: string) => void;
   private toast!: ToastFn;
   private notify!: () => void;
@@ -233,7 +233,7 @@ class NewEntryPageController {
     this.notify = notify;
   }
 
-  update(ledger: UseLedgerReturn, onNavigate: (page: string, type?: string) => void, preselectedType?: TxType): void {
+  update(ledger: LedgerController, onNavigate: (page: string, type?: string) => void, preselectedType?: TxType): void {
     this.ledger = ledger;
     this.onNavigate = onNavigate;
     if (preselectedType && preselectedType !== this.txType) {

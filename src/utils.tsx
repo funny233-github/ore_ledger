@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef, createContext, useContext } from 'react';
+import { useState, useCallback, useRef, createContext, useContext } from 'react';
 import type { ReactNode, JSX } from 'react';
 import { Storage } from './storage';
 import { LedgerEngine, r2 } from './engine';
@@ -108,7 +108,7 @@ export function useToast(): ToastFn {
 }
 
 /* ====================================================
-   HOOKS & STATE MANAGEMENT
+   NAVIGATION
    ==================================================== */
 
 export interface NavItem {
@@ -124,6 +124,10 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'new-entry',     label: 'New Entry',     icon: '+'  },
 ];
 
+/* ====================================================
+   Ore Cost Analysis
+   ==================================================== */
+
 export interface OreCostAnalysis {
   count: number;
   minPrice: number;
@@ -133,124 +137,57 @@ export interface OreCostAnalysis {
   vsLatest: number;
 }
 
-export interface UseLedgerReturn {
-  state: LedgerState;
-  summary: LedgerSummary;
-  transactions: Transaction[];
-  recentTransactions: Transaction[];
-  activePortfolio: PortfolioEntryWithMeta[];
-  addTransaction: (tx: TransactionInput) => boolean;
-  deleteTransaction: (txId: string) => void;
-  getOreHolding: (oreId: string) => PortfolioEntry;
-  getOreCostAnalysis: (oreId: string) => OreCostAnalysis;
-  adjustQuantity: (oreId: string, newQuantity: number) => boolean;
-}
+/* ====================================================
+   LEDGER CONTROLLER
+   ==================================================== */
 
-export function useLedger(): UseLedgerReturn {
-  const [state, setState] = useState<LedgerState>(() => Storage.loadState());
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+/**
+ * Central state controller for the ledger application.
+ * Manages all state, computed values, and actions.
+ * Instantiated once via useLedger() and passed to PageControllers.
+ */
+export class LedgerController {
+  private _state: LedgerState;
+  private _notify!: () => void;
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-  useEffect(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      Storage.saveState(state);
+  constructor() {
+    this._state = Storage.loadState();
+  }
+
+  /** Wire up the React re-render callback. Must be called once before use. */
+  init(notify: () => void): void {
+    this._notify = notify;
+  }
+
+  private _scheduleSave(): void {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => {
+      Storage.saveState(this._state);
     }, 500);
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [state]);
+  }
 
-  const summary = useMemo(() => LedgerEngine.computeSummary(state), [state]);
+  /* -- read-only state -- */
 
-  const addTransaction = useCallback((tx: TransactionInput): boolean => {
-    const result = LedgerEngine.process(state, tx);
-    if ('error' in result) {
-      console.warn('Ore Ledger: Transaction rejected:', result.error);
-      return false;
-    }
-    setState(result);
-    return true;
-  }, [state]);
+  get state(): LedgerState { return this._state; }
 
-  const deleteTransaction = useCallback((txId: string) => {
-    setState(prev => {
-      const tx = prev.transactions.find(t => t.id === txId);
-      if (!tx) return prev;
+  get summary(): LedgerSummary {
+    return LedgerEngine.computeSummary(this._state);
+  }
 
-      const s: LedgerState = structuredClone(prev);
-      s.transactions = s.transactions.filter(t => t.id !== txId);
-
-      switch (tx.type) {
-        case 'buy': {
-          const assetId = tx.asset!;
-          const totalPaid = Math.abs(tx.totalAmount);
-          if (s.portfolio[assetId]) {
-            s.portfolio[assetId].quantity -= tx.quantity!;
-            s.portfolio[assetId].totalCost -= totalPaid;
-            if (s.portfolio[assetId].quantity <= 0) {
-              delete s.portfolio[assetId];
-            } else {
-              s.portfolio[assetId].avgCost = r2(s.portfolio[assetId].totalCost / s.portfolio[assetId].quantity);
-            }
-          }
-          s.cash += totalPaid;
-          break;
-        }
-        case 'sell': {
-          const assetId = tx.asset!;
-          if (!s.portfolio[assetId]) {
-            s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
-          }
-          const p = s.portfolio[assetId];
-          p.quantity += tx.quantity!;
-          p.totalCost += tx.costOfSold || (tx.quantity! * (tx.avgCostAtSale || 0));
-          p.avgCost = p.quantity > 0 ? r2(p.totalCost / p.quantity) : 0;
-          s.cash -= tx.totalAmount;
-          s.metadata.totalSpeculativeProfit -= (tx.profit || 0);
-          break;
-        }
-        case 'mine_sell': {
-          s.cash -= tx.totalAmount;
-          s.metadata.totalMiningIncome -= tx.totalAmount;
-          break;
-        }
-        case 'expense': {
-          const spent = Math.abs(tx.totalAmount);
-          s.cash += spent;
-          s.metadata.totalExpenses -= spent;
-          break;
-        }
-        case 'balance_adjust': {
-          s.cash = tx.previousBalance || 0;
-          s.metadata.totalAdjustments -= (tx.adjustment || 0);
-          break;
-        }
-        case 'write_off': {
-          const assetId = tx.asset!;
-          const lossAmount = tx.lossAmount || 0;
-          if (!s.portfolio[assetId]) {
-            s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
-          }
-          const wp = s.portfolio[assetId];
-          wp.quantity += tx.quantity!;
-          wp.totalCost += lossAmount;
-          wp.avgCost = wp.quantity > 0 ? r2(wp.totalCost / wp.quantity) : 0;
-          break;
-        }
-      }
-      return s;
-    });
-  }, []);
-
-  const sortedTransactions = useMemo(() => {
-    return [...state.transactions].sort((a, b) => {
+  get transactions(): Transaction[] {
+    return [...this._state.transactions].sort((a, b) => {
       if (a.date !== b.date) return b.date.localeCompare(a.date);
       return (b.createdAt || 0) - (a.createdAt || 0);
     });
-  }, [state.transactions]);
+  }
 
-  const activePortfolio = useMemo((): PortfolioEntryWithMeta[] => {
-    return Object.entries(state.portfolio)
+  get recentTransactions(): Transaction[] {
+    return this.transactions.slice(0, 5);
+  }
+
+  get activePortfolio(): PortfolioEntryWithMeta[] {
+    return Object.entries(this._state.portfolio)
       .filter(([_id, p]) => p.quantity > 0)
       .map(([id, p]) => {
         const ore = ORES.find(o => o.id === id);
@@ -263,15 +200,17 @@ export function useLedger(): UseLedgerReturn {
           pnl: r2((p.quantity * p.avgCost) - p.totalCost),
         };
       });
-  }, [state.portfolio]);
+  }
 
-  const getOreHolding = useCallback((oreId: string): PortfolioEntry => {
-    return state.portfolio[oreId] || { quantity: 0, totalCost: 0, avgCost: 0 };
-  }, [state.portfolio]);
+  getOreHolding(oreId: string): PortfolioEntry {
+    return this._state.portfolio[oreId] || { quantity: 0, totalCost: 0, avgCost: 0 };
+  }
 
-  const getOreCostAnalysis = useCallback((oreId: string): OreCostAnalysis => {
-    const buys = state.transactions
-      .filter(t => t.type === 'buy' && t.asset === oreId)
+  getOreCostAnalysis(oreId: string): OreCostAnalysis {
+    const buys = this._state.transactions
+      .filter((t): t is Transaction & { asset: string; unitPrice: number } =>
+        t.type === 'buy' && t.asset === oreId && t.unitPrice !== undefined
+      )
       .sort((a, b) => {
         if (a.date !== b.date) return a.date.localeCompare(b.date);
         return (a.createdAt || 0) - (b.createdAt || 0);
@@ -279,23 +218,106 @@ export function useLedger(): UseLedgerReturn {
     if (buys.length === 0) {
       return { count: 0, minPrice: 0, maxPrice: 0, latestPrice: 0, avgCost: 0, vsLatest: 0 };
     }
-    const prices = buys.map(t => t.unitPrice!);
+    const prices = buys.map(t => t.unitPrice);
     const latestPrice = prices[prices.length - 1];
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const holding = state.portfolio[oreId];
+    const holding = this._state.portfolio[oreId];
     const avgCost = holding ? holding.avgCost : 0;
     const vsLatest = avgCost > 0 ? r2((latestPrice - avgCost) / avgCost * 100) : 0;
-    return { count: buys.length, minPrice, maxPrice, latestPrice, avgCost, vsLatest };
-  }, [state.transactions, state.portfolio]);
+    return { count: buys.length, minPrice: Math.min(...prices), maxPrice: Math.max(...prices), latestPrice, avgCost, vsLatest };
+  }
 
-  const adjustQuantity = useCallback((oreId: string, newQuantity: number): boolean => {
-    const holding = state.portfolio[oreId];
+  /* -- actions -- */
+
+  addTransaction(tx: TransactionInput): boolean {
+    const result = LedgerEngine.process(this._state, tx);
+    if ('error' in result) {
+      console.warn('Ore Ledger: Transaction rejected:', result.error);
+      return false;
+    }
+    this._state = result;
+    this._scheduleSave();
+    this._notify();
+    return true;
+  }
+
+  deleteTransaction(txId: string): void {
+    const tx = this._state.transactions.find(t => t.id === txId);
+    if (!tx) return;
+
+    const s: LedgerState = structuredClone(this._state);
+    s.transactions = s.transactions.filter(t => t.id !== txId);
+
+    switch (tx.type) {
+      case 'buy': {
+        const assetId = tx.asset!;
+        const totalPaid = Math.abs(tx.totalAmount);
+        if (s.portfolio[assetId]) {
+          s.portfolio[assetId].quantity -= tx.quantity!;
+          s.portfolio[assetId].totalCost -= totalPaid;
+          if (s.portfolio[assetId].quantity <= 0) {
+            delete s.portfolio[assetId];
+          } else {
+            s.portfolio[assetId].avgCost = r2(s.portfolio[assetId].totalCost / s.portfolio[assetId].quantity);
+          }
+        }
+        s.cash += totalPaid;
+        break;
+      }
+      case 'sell': {
+        const assetId = tx.asset!;
+        if (!s.portfolio[assetId]) {
+          s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
+        }
+        const p = s.portfolio[assetId];
+        p.quantity += tx.quantity!;
+        p.totalCost += tx.costOfSold || (tx.quantity! * (tx.avgCostAtSale || 0));
+        p.avgCost = p.quantity > 0 ? r2(p.totalCost / p.quantity) : 0;
+        s.cash -= tx.totalAmount;
+        s.metadata.totalSpeculativeProfit -= (tx.profit || 0);
+        break;
+      }
+      case 'mine_sell': {
+        s.cash -= tx.totalAmount;
+        s.metadata.totalMiningIncome -= tx.totalAmount;
+        break;
+      }
+      case 'expense': {
+        const spent = Math.abs(tx.totalAmount);
+        s.cash += spent;
+        s.metadata.totalExpenses -= spent;
+        break;
+      }
+      case 'balance_adjust': {
+        s.cash = tx.previousBalance || 0;
+        s.metadata.totalAdjustments -= (tx.adjustment || 0);
+        break;
+      }
+      case 'write_off': {
+        const assetId = tx.asset!;
+        const lossAmount = tx.lossAmount || 0;
+        if (!s.portfolio[assetId]) {
+          s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
+        }
+        const wp = s.portfolio[assetId];
+        wp.quantity += tx.quantity!;
+        wp.totalCost += lossAmount;
+        wp.avgCost = wp.quantity > 0 ? r2(wp.totalCost / wp.quantity) : 0;
+        break;
+      }
+    }
+
+    this._state = s;
+    this._scheduleSave();
+    this._notify();
+  }
+
+  adjustQuantity(oreId: string, newQuantity: number): boolean {
+    const holding = this._state.portfolio[oreId];
     if (!holding || holding.quantity <= 0) return false;
     const diff = holding.quantity - newQuantity;
     if (diff <= 0) return false;
 
-    const result = LedgerEngine.process(state, {
+    const result = LedgerEngine.process(this._state, {
       type: 'write_off',
       asset: oreId,
       quantity: diff,
@@ -308,24 +330,31 @@ export function useLedger(): UseLedgerReturn {
       console.warn('Ore Ledger: write-off rejected:', result.error);
       return false;
     }
-    setState(result);
+    this._state = result;
+    this._scheduleSave();
+    this._notify();
     return true;
-  }, [state]);
+  }
+}
 
-  const recentTransactions = useMemo(() => {
-    return sortedTransactions.slice(0, 5);
-  }, [sortedTransactions]);
+/* ====================================================
+   useLedger HOOK
+   ==================================================== */
 
-  return {
-    state,
-    summary,
-    transactions: sortedTransactions,
-    recentTransactions,
-    activePortfolio,
-    addTransaction,
-    deleteTransaction,
-    getOreHolding,
-    getOreCostAnalysis,
-    adjustQuantity,
-  };
+/**
+ * Creates a singleton LedgerController for the app.
+ * Returns the same instance across renders. The controller
+ * calls notify via init() to trigger re-renders on state change.
+ */
+export function useLedger(): LedgerController {
+  const [, forceUpdate] = useState(0);
+  const notify = useCallback(() => forceUpdate(n => n + 1), []);
+
+  const ctrl = useRef<LedgerController>(null);
+  if (!ctrl.current) {
+    ctrl.current = new LedgerController();
+    ctrl.current.init(notify);
+  }
+
+  return ctrl.current;
 }
