@@ -8,7 +8,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node postbuild.mjs",
     "serve": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
