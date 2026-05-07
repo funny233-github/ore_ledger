@@ -26,7 +26,7 @@ class DashboardPageController {
 
   get summary() { return this.ledger.summary; }
   get recentTransactions() { return this.ledger.recentTransactions; }
-  get deleteTransaction() { return this.ledger.deleteTransaction; }
+  get deleteTransaction() { return this.ledger.deleteTransaction.bind(this.ledger); }
 
   navigate(page: string, type?: string): void { this.onNavigate(page, type); }
 }
@@ -70,7 +70,7 @@ class TransactionsPageController {
   }
 
   get transactions() { return this.ledger.transactions; }
-  get deleteTransaction() { return this.ledger.deleteTransaction; }
+  get deleteTransaction() { return this.ledger.deleteTransaction.bind(this.ledger); }
   get filtered() {
     if (this.filterType === 'all') return this.transactions;
     return this.transactions.filter(tx => tx.type === this.filterType);
@@ -132,7 +132,7 @@ class PortfolioPageController {
 
   get summary() { return this.ledger.summary; }
   get activePortfolio() { return this.ledger.activePortfolio; }
-  get getOreCostAnalysis() { return this.ledger.getOreCostAnalysis; }
+  get getOreCostAnalysis() { return this.ledger.getOreCostAnalysis.bind(this.ledger); }
 
   get totalCost(): number {
     return this.activePortfolio.reduce((s, p) => s + p.totalCost, 0);

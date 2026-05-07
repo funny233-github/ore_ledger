@@ -294,13 +294,11 @@ export class LedgerController {
       }
       case 'write_off': {
         const assetId = tx.asset!;
-        const lossAmount = tx.lossAmount || 0;
         if (!s.portfolio[assetId]) {
           s.portfolio[assetId] = { quantity: 0, totalCost: 0, avgCost: 0 };
         }
         const wp = s.portfolio[assetId];
         wp.quantity += tx.quantity!;
-        wp.totalCost += lossAmount;
         wp.avgCost = wp.quantity > 0 ? r2(wp.totalCost / wp.quantity) : 0;
         break;
       }

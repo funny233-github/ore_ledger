@@ -146,7 +146,6 @@ export const LedgerEngine = {
 
     const lossAmount = r2(qty * p.avgCost);
     p.quantity -= qty;
-    p.totalCost = r2(p.totalCost - lossAmount);
     if (p.quantity <= 0) {
       p.quantity = 0;
       p.totalCost = 0;
