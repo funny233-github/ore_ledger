@@ -761,6 +761,7 @@ export function DashboardView({ summary, recentTransactions, onNavigate, deleteT
         <QuickActionBtn icon="↑" label="Sell Ore" color="var(--blue)" onClick={() => onNavigate('new-entry', 'sell')} />
         <QuickActionBtn icon="⛏" label="Mine Sale" color="var(--amber)" onClick={() => onNavigate('new-entry', 'mine_sell')} />
         <QuickActionBtn icon="✕" label="Expense" color="var(--red)" onClick={() => onNavigate('new-entry', 'expense')} />
+        <QuickActionBtn icon="⟳" label="Adjust" color="var(--accent)" onClick={() => onNavigate('new-entry', 'balance_adjust')} />
       </div>
 
       <SectionCard title="Recent Transactions" headerRight={
