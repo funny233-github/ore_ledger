@@ -155,7 +155,7 @@ export type EngineResult = LedgerState | EngineError;
 
 /* --- ID Generator --- */
 
-let _idCounter = Date.now();
+let _idCounter: number = Date.now();
 export const generateId = (): string =>
   `tx_${_idCounter++}_${Math.random().toString(36).slice(2, 6)}`;
 

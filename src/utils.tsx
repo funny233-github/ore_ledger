@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef, createContext, useContext } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, JSX } from 'react';
 import { Storage } from './storage';
 import { LedgerEngine, r2 } from './engine';
 import { ORES } from './data';
@@ -44,7 +44,7 @@ export type ToastFn = (message: string, type?: ToastType, duration?: number) => 
 
 const ToastContext = createContext<ToastFn | null>(null);
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children }: { children: ReactNode }): JSX.Element {
   const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: ToastType }>>([]);
   const toastId = useRef(0);
   const exiting = useRef(new Set<number>());

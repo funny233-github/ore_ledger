@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, JSX } from 'react';
 import { NAV_ITEMS, formatDate, formatCurrencyFull } from './utils';
 import type { NavItem, OreCostAnalysis } from './utils';
 import { ORES } from './data';
@@ -15,7 +15,7 @@ interface SidebarProps {
   onToggleTheme: () => void;
 }
 
-export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }: SidebarProps) {
+export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }: SidebarProps): JSX.Element {
   return (
     <aside style={{
       width: 'var(--sidebar-w)',
@@ -161,7 +161,7 @@ interface TopBarProps {
   cashBalance: number;
 }
 
-export function TopBar({ title, cashBalance }: TopBarProps) {
+export function TopBar({ title, cashBalance }: TopBarProps): JSX.Element {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -207,7 +207,7 @@ interface SummaryCardProps {
   typeVariant?: CardVariant;
 }
 
-export function SummaryCard({ label, value, sub, typeVariant = 'neutral' }: SummaryCardProps) {
+export function SummaryCard({ label, value, sub, typeVariant = 'neutral' }: SummaryCardProps): JSX.Element {
   const colorMap: Record<CardVariant, string> = { positive: 'var(--green)', negative: 'var(--red)', neutral: 'var(--text)' };
   return (
     <div className="card-enter" style={{
@@ -263,7 +263,7 @@ interface TransactionItemProps {
   showDelete?: boolean;
 }
 
-export function TransactionItem({ tx, onDelete, showDelete }: TransactionItemProps) {
+export function TransactionItem({ tx, onDelete, showDelete }: TransactionItemProps): JSX.Element {
   const vis = TX_VISUAL[tx.type] || TX_VISUAL.buy;
   const bg = TX_BG[tx.type] || TX_BG.buy;
   const label = TX_LABEL[tx.type] || tx.type;
@@ -345,7 +345,7 @@ interface QuickActionBtnProps {
   onClick: () => void;
 }
 
-export function QuickActionBtn({ icon, label, color, onClick }: QuickActionBtnProps) {
+export function QuickActionBtn({ icon, label, color, onClick }: QuickActionBtnProps): JSX.Element {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: '10px',
@@ -388,7 +388,7 @@ interface SectionCardProps {
   headerRight?: ReactNode;
 }
 
-export function SectionCard({ title, children, headerRight }: SectionCardProps) {
+export function SectionCard({ title, children, headerRight }: SectionCardProps): JSX.Element {
   return (
     <div style={{
       background: 'var(--surface)',
@@ -422,7 +422,7 @@ interface PageShellProps {
   children: ReactNode;
 }
 
-export function PageShell({ children }: PageShellProps) {
+export function PageShell({ children }: PageShellProps): JSX.Element {
   return (
     <div className="page">
       <div style={{ maxWidth: 1120, margin: '0 auto', padding: 'var(--space-xl) var(--space-xl) var(--space-3xl)' }}>
@@ -440,7 +440,7 @@ interface PageHeaderProps {
   marginBottom?: string | number;
 }
 
-export function PageHeader({ title, subtitle, marginBottom }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, marginBottom }: PageHeaderProps): JSX.Element {
   return (
     <div style={{ marginBottom: marginBottom ?? 'var(--space-xl)' }}>
       <h1 style={{
@@ -465,7 +465,7 @@ interface EmptyStateProps {
   messageStyle?: React.CSSProperties;
 }
 
-export function EmptyState({ icon, iconStyle, title, message, messageStyle }: EmptyStateProps) {
+export function EmptyState({ icon, iconStyle, title, message, messageStyle }: EmptyStateProps): JSX.Element {
   return (
     <div style={{ textAlign: 'center', padding: 'var(--space-2xl) var(--space-lg)', color: 'var(--text-muted)' }}>
       <div style={{
@@ -490,7 +490,7 @@ interface FormFieldProps {
   labelStyle?: React.CSSProperties;
 }
 
-export function FormField({ label, children, labelStyle }: FormFieldProps) {
+export function FormField({ label, children, labelStyle }: FormFieldProps): JSX.Element {
   return (
     <div>
       <label style={{
@@ -511,7 +511,7 @@ interface FilterChipsProps {
   labelMap?: Record<string, string>;
 }
 
-export function FilterChips({ options, value, onChange, labelMap }: FilterChipsProps) {
+export function FilterChips({ options, value, onChange, labelMap }: FilterChipsProps): JSX.Element {
   return (
     <div style={{
       display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center',
@@ -554,7 +554,7 @@ interface OreSelectorProps {
   formatCurrencyFull: (n?: number | null) => string;
 }
 
-export function OreSelector({ txType, saleSource, oreId, availableOres, groupedOres, currentHolding, costAnalysis, onOreIdChange, formatCurrencyFull: fmt }: OreSelectorProps) {
+export function OreSelector({ txType, saleSource, oreId, availableOres, groupedOres, currentHolding, costAnalysis, onOreIdChange, formatCurrencyFull: fmt }: OreSelectorProps): JSX.Element {
   return (
     <div>
       <label style={{
@@ -627,7 +627,7 @@ interface HoldingsTableProps {
   formatCurrencyFull: (n?: number | null) => string;
 }
 
-export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange, formatCurrencyFull: fmt }: HoldingsTableProps) {
+export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange, formatCurrencyFull: fmt }: HoldingsTableProps): JSX.Element {
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -705,7 +705,7 @@ export function HoldingsTable({ portfolio, getAnalysis, editOreId, editValue, on
 
 /* --- Ore Reference --- */
 
-export function OreReference() {
+export function OreReference(): JSX.Element {
   return (
     <div style={{ fontSize: '0.82rem' }}>
       {(['shallow', 'deep', 'nether'] as const).map(cat => (
@@ -737,7 +737,7 @@ interface DashboardViewProps {
   deleteTransaction: (id: string) => void;
 }
 
-export function DashboardView({ summary, recentTransactions, onNavigate, deleteTransaction }: DashboardViewProps) {
+export function DashboardView({ summary, recentTransactions, onNavigate, deleteTransaction }: DashboardViewProps): JSX.Element {
   return (
     <PageShell>
       <PageHeader title="Dashboard" subtitle="Overview of your ore stock market activity" />
@@ -798,7 +798,7 @@ interface TransactionsViewProps {
   deleteTransaction: (id: string) => void;
 }
 
-export function TransactionsView({ filtered, filterType, onFilterTypeChange, onNavigate, deleteTransaction }: TransactionsViewProps) {
+export function TransactionsView({ filtered, filterType, onFilterTypeChange, onNavigate, deleteTransaction }: TransactionsViewProps): JSX.Element {
   return (
     <PageShell>
       <PageHeader title="Transactions" subtitle="Complete history of all your financial activities" marginBottom={24} />
@@ -853,7 +853,7 @@ interface PortfolioViewProps {
   onEditValueChange: (val: string) => void;
 }
 
-export function PortfolioView({ summary, totalCost, activePortfolio, getOreCostAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange }: PortfolioViewProps) {
+export function PortfolioView({ summary, totalCost, activePortfolio, getOreCostAnalysis, editOreId, editValue, onStartEdit, onConfirmEdit, onCancelEdit, onEditValueChange }: PortfolioViewProps): JSX.Element {
   return (
     <PageShell>
       <PageHeader title="Portfolio" subtitle="Your current ore holdings and cost basis" marginBottom={24} />
@@ -968,7 +968,7 @@ export function NewEntryView({
   availableOres, groupedOres,
   currentHolding, costAnalysis,
   onSubmit, currentCash,
-}: NewEntryViewProps) {
+}: NewEntryViewProps): JSX.Element {
   return (
     <PageShell>
       <PageHeader title="New Entry" subtitle="Record a new transaction or activity" marginBottom={24} />

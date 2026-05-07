@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useLedger, useToast, formatCurrencyFull } from './utils';
+import type { JSX } from 'react';
+import { useToast } from './utils';
 import type { UseLedgerReturn } from './utils';
 import { ORES } from './data';
 import type { Ore, TxType } from './data';
@@ -14,7 +15,7 @@ interface DashboardPageProps {
   onNavigate: (page: string, type?: string) => void;
 }
 
-export function DashboardPage({ ledger, onNavigate }: DashboardPageProps) {
+export function DashboardPage({ ledger, onNavigate }: DashboardPageProps): JSX.Element {
   const { summary, recentTransactions } = ledger;
   return (
     <DashboardView
@@ -35,7 +36,7 @@ interface TransactionsPageProps {
   onNavigate: (page: string, type?: string) => void;
 }
 
-export function TransactionsPage({ ledger, onNavigate }: TransactionsPageProps) {
+export function TransactionsPage({ ledger, onNavigate }: TransactionsPageProps): JSX.Element {
   const { transactions } = ledger;
   const [filterType, setFilterType] = useState<string>('all');
 
@@ -63,7 +64,7 @@ interface PortfolioPageProps {
   ledger: UseLedgerReturn;
 }
 
-export function PortfolioPage({ ledger }: PortfolioPageProps) {
+export function PortfolioPage({ ledger }: PortfolioPageProps): JSX.Element {
   const { summary, activePortfolio, getOreCostAnalysis, adjustQuantity } = ledger;
   const toast = useToast();
   const [editOreId, setEditOreId] = useState<string | null>(null);
@@ -122,7 +123,7 @@ interface NewEntryPageProps {
   onNavigate: (page: string, type?: string) => void;
 }
 
-export function NewEntryPage({ ledger, preselectedType, onNavigate }: NewEntryPageProps) {
+export function NewEntryPage({ ledger, preselectedType, onNavigate }: NewEntryPageProps): JSX.Element {
   const { getOreHolding, getOreCostAnalysis, addTransaction } = ledger;
   const toast = useToast();
   const [txType, setTxType] = useState<TxType>(preselectedType || 'buy');

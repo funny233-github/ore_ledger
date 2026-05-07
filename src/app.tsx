@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import type { JSX } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useLedger, NAV_ITEMS, ToastProvider } from './utils';
 import type { NavItem } from './utils';
@@ -11,7 +12,7 @@ import { DashboardPage, TransactionsPage, PortfolioPage, NewEntryPage } from './
    APP COMPONENT
    ==================================================== */
 
-function App() {
+function App(): JSX.Element {
   const [activeNav, setActiveNav] = useState('dashboard');
   const [preselectedType, setPreselectedType] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(() => {
@@ -58,7 +59,7 @@ function App() {
     return item ? item.label : 'Dashboard';
   }, [activeNav]);
 
-  const renderPage = () => {
+  const renderPage = (): JSX.Element => {
     switch (activeNav) {
       case 'dashboard':
         return <DashboardPage ledger={ledger} onNavigate={handleNavigate} />;
