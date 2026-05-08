@@ -287,8 +287,13 @@ class NewEntryPageController {
     const p = parseFloat(this.unitPrice) || 0;
     const received = q * p;
     if (this.saleSource === 'mined') return received;
-    const cost = q * this.currentHolding.avgCost;
-    return received - cost;
+    const holding = this.currentHolding;
+    const portfolioQty = Math.min(q, holding.quantity);
+    const minedQty = q - portfolioQty;
+    let profit = 0;
+    if (portfolioQty > 0) profit += portfolioQty * p - portfolioQty * holding.avgCost;
+    if (minedQty > 0) profit += minedQty * p;
+    return profit;
   }
 
   /* -- actions -- */
@@ -324,9 +329,42 @@ class NewEntryPageController {
 
       if (this.txType === 'sell' && this.saleSource === 'portfolio') {
         const holding = this.ledger.getOreHolding(this.oreId);
-        if (q > holding.quantity) {
-          this.formError = `Cannot sell ${q} units — only ${holding.quantity} held`;
+        const portfolioQty = Math.min(q, holding.quantity);
+        const minedQty = q - portfolioQty;
+
+        if (minedQty > 0) {
+          if (portfolioQty > 0) {
+            const txPortfolio = {
+              type: 'sell' as TxType,
+              date: this.date,
+              asset: this.oreId,
+              quantity: portfolioQty,
+              unitPrice: p,
+              totalAmount: portfolioQty * p,
+              note: this.note.trim() || undefined,
+              source: 'portfolio' as const,
+            };
+            if (this.ledger.addTransaction(txPortfolio) === false) {
+              this.formError = 'Failed to record portfolio sale';
+              this.notify();
+              return;
+            }
+          }
+          const txMined = {
+            type: 'mine_sell' as TxType,
+            date: this.date,
+            asset: this.oreId,
+            quantity: minedQty,
+            unitPrice: p,
+            totalAmount: minedQty * p,
+            note: this.note.trim() || undefined,
+          };
+          this.ledger.addTransaction(txMined);
+
+          this.toast(`Sold ${portfolioQty} from portfolio + ${minedQty} from mining`, 'success');
+          this._resetForm();
           this.notify();
+          setTimeout(() => this.onNavigate('transactions'), 1000);
           return;
         }
       }
