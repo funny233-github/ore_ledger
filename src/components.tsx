@@ -124,10 +124,25 @@ export function Sidebar({ activeNav, onNavChange, onExport, onImport, onClear, t
           fontSize: '0.75rem',
           color: 'var(--text-sidebar-muted)',
           letterSpacing: '0.03em',
-          marginBottom: 10,
+          marginBottom: 8,
         }}>
           <span>Ore Ledger v0.1</span>
-          <button onClick={onToggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <a href="https://github.com/funny233-github/ore_ledger" target="_blank" rel="noopener noreferrer"
+              title="GitHub repository"
+              style={{
+                background: 'none', border: '1px solid var(--border-sidebar)',
+                cursor: 'pointer', padding: '3px 8px',
+                fontSize: '0.7rem', color: 'var(--text-sidebar-muted)',
+                fontFamily: 'inherit', borderRadius: 'var(--radius-sm)',
+                textDecoration: 'none',
+                transition: 'all var(--transition)',
+                lineHeight: 1.4,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent-light)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-sidebar)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-sidebar-muted)'; }}
+            >GitHub</a>
+            <button onClick={onToggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             style={{
               background: 'none', border: '1px solid var(--border-sidebar)',
               cursor: 'pointer', padding: '3px 8px',
@@ -139,7 +154,8 @@ export function Sidebar({ activeNav, onNavChange, onExport, onImport, onClear, t
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-sidebar)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-sidebar-muted)'; }}
           >{theme === 'dark' ? '☀ Light' : '☾ Dark'}</button>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
           <button onClick={handleImportClick} title="Import data from JSON"
             style={{
               flex: 1, padding: '6px 10px',
