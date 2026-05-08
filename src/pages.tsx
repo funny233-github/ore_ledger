@@ -13,6 +13,7 @@ import { DashboardView, TransactionsView, PortfolioView, NewEntryView } from './
 interface DashboardPageProps {
   ledger: LedgerController;
   onNavigate: (page: string, type?: string) => void;
+  onEditTransaction?: (id: string) => void;
 }
 
 class DashboardPageController {
@@ -27,11 +28,12 @@ class DashboardPageController {
   get summary() { return this.ledger.summary; }
   get recentTransactions() { return this.ledger.recentTransactions; }
   get deleteTransaction() { return this.ledger.deleteTransaction.bind(this.ledger); }
+  get isLatestTx() { return this.ledger.isLatestTx.bind(this.ledger); }
 
   navigate(page: string, type?: string): void { this.onNavigate(page, type); }
 }
 
-export function DashboardPage({ ledger, onNavigate }: DashboardPageProps): JSX.Element {
+export function DashboardPage({ ledger, onNavigate, onEditTransaction }: DashboardPageProps): JSX.Element {
   const ctrl = useRef(new DashboardPageController()).current;
   ctrl.update(ledger, onNavigate);
 
@@ -41,6 +43,8 @@ export function DashboardPage({ ledger, onNavigate }: DashboardPageProps): JSX.E
       recentTransactions={ctrl.recentTransactions}
       onNavigate={(p, t) => ctrl.navigate(p, t)}
       deleteTransaction={ctrl.deleteTransaction}
+      onEditTransaction={onEditTransaction}
+      isLatestTx={ctrl.isLatestTx}
     />
   );
 }
@@ -52,6 +56,7 @@ export function DashboardPage({ ledger, onNavigate }: DashboardPageProps): JSX.E
 interface TransactionsPageProps {
   ledger: LedgerController;
   onNavigate: (page: string, type?: string) => void;
+  onEditTransaction?: (id: string) => void;
 }
 
 class TransactionsPageController {
@@ -71,6 +76,7 @@ class TransactionsPageController {
 
   get transactions() { return this.ledger.transactions; }
   get deleteTransaction() { return this.ledger.deleteTransaction.bind(this.ledger); }
+  get isLatestTx() { return this.ledger.isLatestTx.bind(this.ledger); }
   get filtered() {
     if (this.filterType === 'all') return this.transactions;
     return this.transactions.filter(tx => tx.type === this.filterType);
@@ -84,7 +90,7 @@ class TransactionsPageController {
   navigate(page: string, type?: string): void { this.onNavigate(page, type); }
 }
 
-export function TransactionsPage({ ledger, onNavigate }: TransactionsPageProps): JSX.Element {
+export function TransactionsPage({ ledger, onNavigate, onEditTransaction }: TransactionsPageProps): JSX.Element {
   const [, forceUpdate] = useState(0);
   const notify = useCallback(() => forceUpdate(n => n + 1), []);
 
@@ -102,6 +108,8 @@ export function TransactionsPage({ ledger, onNavigate }: TransactionsPageProps):
       onFilterTypeChange={t => ctrl.current!.setFilterType(t)}
       onNavigate={(p, t) => ctrl.current!.navigate(p, t)}
       deleteTransaction={ctrl.current.deleteTransaction}
+      onEditTransaction={onEditTransaction}
+      isLatestTx={ctrl.current.isLatestTx}
     />
   );
 }
@@ -203,6 +211,7 @@ interface NewEntryPageProps {
   ledger: LedgerController;
   preselectedType?: TxType;
   onNavigate: (page: string, type?: string) => void;
+  editTxId?: string;
 }
 
 class NewEntryPageController {
@@ -210,6 +219,8 @@ class NewEntryPageController {
   private onNavigate!: (page: string, type?: string) => void;
   private toast!: ToastFn;
   private notify!: () => void;
+  private editTxId: string | null = null;
+  private _loadedEditTxId: string | null = null;
 
   /* -- form state -- */
   txType: TxType;
@@ -233,12 +244,31 @@ class NewEntryPageController {
     this.notify = notify;
   }
 
-  update(ledger: LedgerController, onNavigate: (page: string, type?: string) => void, preselectedType?: TxType): void {
+  update(ledger: LedgerController, onNavigate: (page: string, type?: string) => void, preselectedType?: TxType, editTx?: Transaction): void {
     this.ledger = ledger;
     this.onNavigate = onNavigate;
+
+    if (editTx && editTx.id !== this._loadedEditTxId) {
+      this._loadTransaction(editTx);
+      this._loadedEditTxId = editTx.id;
+    }
+
     if (preselectedType && preselectedType !== this.txType) {
       this._setTxTypeInternal(preselectedType);
     }
+  }
+
+  private _loadTransaction(tx: Transaction): void {
+    this._setTxTypeInternal(tx.type);
+    this.editTxId = tx.id;
+    this.date = tx.date;
+    this.oreId = tx.asset || '';
+    this.quantity = tx.quantity ? String(tx.quantity) : '';
+    this.unitPrice = tx.unitPrice ? String(tx.unitPrice) : '';
+    this.description = tx.description || '';
+    this.newBalance = tx.newBalance ? String(tx.newBalance) : '';
+    this.note = tx.note || '';
+    this.saleSource = tx.source || 'portfolio';
   }
 
   /* -- computed -- */
@@ -322,6 +352,13 @@ class NewEntryPageController {
     const q = parseInt(this.quantity, 10);
     const p = parseFloat(this.unitPrice);
 
+    // In edit mode: delete old first so portfolio state is correct for all subsequent calculations
+    const wasEditing = !!this.editTxId;
+    if (this.editTxId) {
+      this.ledger.deleteTransaction(this.editTxId);
+      this.editTxId = null;
+    }
+
     if (this.txType === 'buy' || this.txType === 'sell' || this.txType === 'mine_sell') {
       if (!this.oreId) { this.formError = 'Please select an ore'; this.notify(); return; }
       if (!q || q <= 0) { this.formError = 'Quantity must be greater than 0'; this.notify(); return; }
@@ -361,7 +398,7 @@ class NewEntryPageController {
           };
           this.ledger.addTransaction(txMined);
 
-          this.toast(`Sold ${portfolioQty} from portfolio + ${minedQty} from mining`, 'success');
+          this.toast(wasEditing ? 'Transaction updated' : `Sold ${portfolioQty} from portfolio + ${minedQty} from mining`, 'success');
           this._resetForm();
           this.notify();
           setTimeout(() => this.onNavigate('transactions'), 1000);
@@ -404,13 +441,15 @@ class NewEntryPageController {
       return;
     }
 
-    this.toast('Transaction recorded successfully', 'success');
+    this.toast(wasEditing ? 'Transaction updated' : 'Transaction recorded successfully', 'success');
     this._resetForm();
     this.notify();
     setTimeout(() => this.onNavigate('transactions'), 1000);
   }
 
   private _resetForm(): void {
+    this.editTxId = null;
+    this._loadedEditTxId = null;
     this.oreId = '';
     this.quantity = '';
     this.unitPrice = '';
@@ -422,7 +461,7 @@ class NewEntryPageController {
   }
 }
 
-export function NewEntryPage({ ledger, preselectedType, onNavigate }: NewEntryPageProps): JSX.Element {
+export function NewEntryPage({ ledger, preselectedType, onNavigate, editTxId }: NewEntryPageProps): JSX.Element {
   const toast = useToast();
   const [, forceUpdate] = useState(0);
   const notify = useCallback(() => forceUpdate(n => n + 1), []);
@@ -432,10 +471,13 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate }: NewEntryPa
     ctrl.current = new NewEntryPageController();
     ctrl.current.init(toast, notify);
   }
-  ctrl.current.update(ledger, onNavigate, preselectedType);
+
+  const editTx = editTxId ? ledger.transactions.find(t => t.id === editTxId) : undefined;
+  ctrl.current.update(ledger, onNavigate, preselectedType, editTx);
 
   return (
     <NewEntryView
+      isEditing={!!editTx}
       txType={ctrl.current.txType}
       onTxTypeChange={(type) => ctrl.current!.setTxType(type)}
       saleSource={ctrl.current.saleSource}

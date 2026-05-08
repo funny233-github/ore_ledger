@@ -226,6 +226,16 @@ export class LedgerController {
     return { count: buys.length, minPrice: Math.min(...prices), maxPrice: Math.max(...prices), latestPrice, avgCost, vsLatest };
   }
 
+  /* -- stack model -- */
+
+  isLatestTx(txId: string): boolean {
+    let latest: Transaction | null = null;
+    for (const tx of this._state.transactions) {
+      if (!latest || tx.createdAt > latest.createdAt) latest = tx;
+    }
+    return latest?.id === txId;
+  }
+
   /* -- actions -- */
 
   addTransaction(tx: TransactionInput): boolean {

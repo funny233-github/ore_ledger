@@ -15,6 +15,7 @@ import { DashboardPage, TransactionsPage, PortfolioPage, NewEntryPage } from './
 function App(): JSX.Element {
   const [activeNav, setActiveNav] = useState('dashboard');
   const [preselectedType, setPreselectedType] = useState<string | null>(null);
+  const [editTxId, setEditTxId] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(() => {
     try { return localStorage.getItem('ore_ledger_theme') || 'dark'; }
     catch { return 'dark'; }
@@ -34,6 +35,7 @@ function App(): JSX.Element {
   const handleNavigate = useCallback((page: string, type?: string) => {
     setPreselectedType(type || null);
     setActiveNav(page);
+    setEditTxId(null);
   }, []);
 
   const toast = useToast();
@@ -58,6 +60,12 @@ function App(): JSX.Element {
     }
   }, [toast]);
 
+  const handleEditTransaction = useCallback((txId: string) => {
+    setEditTxId(txId);
+    setPreselectedType(null);
+    setActiveNav('new-entry');
+  }, []);
+
   const handleClear = useCallback(() => {
     if (window.confirm('Clear ALL data? This cannot be undone.')) {
       Storage.clearAll();
@@ -73,15 +81,15 @@ function App(): JSX.Element {
   const renderPage = (): JSX.Element => {
     switch (activeNav) {
       case 'dashboard':
-        return <DashboardPage ledger={ledger} onNavigate={handleNavigate} />;
+        return <DashboardPage ledger={ledger} onNavigate={handleNavigate} onEditTransaction={handleEditTransaction} />;
       case 'transactions':
-        return <TransactionsPage ledger={ledger} onNavigate={handleNavigate} />;
+        return <TransactionsPage ledger={ledger} onNavigate={handleNavigate} onEditTransaction={handleEditTransaction} />;
       case 'portfolio':
         return <PortfolioPage ledger={ledger} />;
       case 'new-entry':
-        return <NewEntryPage ledger={ledger} preselectedType={(preselectedType ?? undefined) as TxType | undefined} onNavigate={handleNavigate} />;
+        return <NewEntryPage ledger={ledger} preselectedType={(preselectedType ?? undefined) as TxType | undefined} onNavigate={handleNavigate} editTxId={editTxId ?? undefined} />;
       default:
-        return <DashboardPage ledger={ledger} onNavigate={handleNavigate} />;
+        return <DashboardPage ledger={ledger} onNavigate={handleNavigate} onEditTransaction={handleEditTransaction} />;
     }
   };
 

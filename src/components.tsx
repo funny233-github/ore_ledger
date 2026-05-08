@@ -292,11 +292,13 @@ export const TX_LABEL: Record<string, string> = { buy: 'Buy', sell: 'Sell', mine
 
 interface TransactionItemProps {
   tx: Transaction;
+  onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   showDelete?: boolean;
+  isLatest?: boolean;
 }
 
-export function TransactionItem({ tx, onDelete, showDelete }: TransactionItemProps): JSX.Element {
+export function TransactionItem({ tx, onEdit, onDelete, showDelete, isLatest }: TransactionItemProps): JSX.Element {
   const vis = TX_VISUAL[tx.type] || TX_VISUAL.buy;
   const bg = TX_BG[tx.type] || TX_BG.buy;
   const label = TX_LABEL[tx.type] || tx.type;
@@ -352,7 +354,20 @@ export function TransactionItem({ tx, onDelete, showDelete }: TransactionItemPro
         textAlign: 'right', whiteSpace: 'nowrap',
         color: isPositiveAmount ? 'var(--green)' : 'var(--red)',
       }}>{displayAmount}</div>
-      {showDelete && onDelete && (
+      {isLatest && onEdit && (
+        <button onClick={(e) => { e.stopPropagation(); onEdit(tx.id); }} title="Edit transaction"
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: '4px 8px', borderRadius: 'var(--radius-sm)',
+            color: 'var(--text-muted)', fontSize: '0.75rem',
+            transition: 'all var(--transition)', flexShrink: 0,
+            fontFamily: 'inherit', opacity: 0.4,
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLButtonElement).style.opacity = '0.4'; }}
+        >✎</button>
+      )}
+      {isLatest && onDelete && (
         <button onClick={(e) => { e.stopPropagation(); onDelete(tx.id); }} title="Delete transaction"
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
@@ -768,9 +783,11 @@ interface DashboardViewProps {
   recentTransactions: Transaction[];
   onNavigate: (page: string, type?: string) => void;
   deleteTransaction: (id: string) => void;
+  onEditTransaction?: (id: string) => void;
+  isLatestTx?: (id: string) => boolean;
 }
 
-export function DashboardView({ summary, recentTransactions, onNavigate, deleteTransaction }: DashboardViewProps): JSX.Element {
+export function DashboardView({ summary, recentTransactions, onNavigate, deleteTransaction, onEditTransaction, isLatestTx }: DashboardViewProps): JSX.Element {
   return (
     <PageShell>
       <PageHeader title="Dashboard" subtitle="Overview of your ore stock market activity" />
@@ -812,7 +829,7 @@ export function DashboardView({ summary, recentTransactions, onNavigate, deleteT
           <EmptyState icon="O" iconStyle={{ fontSize: '2rem', opacity: 0.25 }} title="No transactions yet" message="Record your first transaction to get started" messageStyle={{ fontWeight: 520 }} />
         ) : (
           <div>{recentTransactions.map(tx => (
-            <TransactionItem key={tx.id} tx={tx} onDelete={deleteTransaction} showDelete={true} />
+            <TransactionItem key={tx.id} tx={tx} onEdit={onEditTransaction} onDelete={deleteTransaction} showDelete={true} isLatest={isLatestTx?.(tx.id) ?? false} />
           ))}</div>
         )}
       </SectionCard>
@@ -830,9 +847,11 @@ interface TransactionsViewProps {
   onFilterTypeChange: (type: string) => void;
   onNavigate: (page: string, type?: string) => void;
   deleteTransaction: (id: string) => void;
+  onEditTransaction?: (id: string) => void;
+  isLatestTx?: (id: string) => boolean;
 }
 
-export function TransactionsView({ filtered, filterType, onFilterTypeChange, onNavigate, deleteTransaction }: TransactionsViewProps): JSX.Element {
+export function TransactionsView({ filtered, filterType, onFilterTypeChange, onNavigate, deleteTransaction, onEditTransaction, isLatestTx }: TransactionsViewProps): JSX.Element {
   return (
     <PageShell>
       <PageHeader title="Transactions" subtitle="Complete history of all your financial activities" marginBottom={24} />
@@ -862,7 +881,7 @@ export function TransactionsView({ filtered, filterType, onFilterTypeChange, onN
           />
         ) : (
           <div>{filtered.map(tx => (
-            <TransactionItem key={tx.id} tx={tx} onDelete={deleteTransaction} showDelete={true} />
+            <TransactionItem key={tx.id} tx={tx} onEdit={onEditTransaction} onDelete={deleteTransaction} showDelete={true} isLatest={isLatestTx?.(tx.id) ?? false} />
           ))}</div>
         )}
       </SectionCard>
@@ -985,6 +1004,7 @@ interface NewEntryViewProps {
   costAnalysis: OreCostAnalysis;
   onSubmit: () => void;
   currentCash: number;
+  isEditing?: boolean;
 }
 
 export function NewEntryView({
@@ -1001,11 +1021,11 @@ export function NewEntryView({
   calculatedTotal, adjustmentDelta, estimatedProfit,
   availableOres, groupedOres,
   currentHolding, costAnalysis,
-  onSubmit, currentCash,
+  onSubmit, currentCash, isEditing,
 }: NewEntryViewProps): JSX.Element {
   return (
     <PageShell>
-      <PageHeader title="New Entry" subtitle="Record a new transaction or activity" marginBottom={24} />
+      <PageHeader title={isEditing ? 'Edit Entry' : 'New Entry'} subtitle={isEditing ? 'Modify an existing transaction' : 'Record a new transaction or activity'} marginBottom={24} />
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
         {TYPE_BTNS.map(btn => (
@@ -1218,7 +1238,7 @@ export function NewEntryView({
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-dark)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)'; }}
           >
-            Record {TX_LABEL[txType] || 'Transaction'}
+            {isEditing ? 'Update' : 'Record'} {TX_LABEL[txType] || 'Transaction'}
           </button>
         </div>
       </SectionCard>
