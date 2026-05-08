@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { JSX } from 'react';
 import { createRoot } from 'react-dom/client';
-import { useLedger, NAV_ITEMS, ToastProvider } from './utils';
+import { useLedger, NAV_ITEMS, ToastProvider, useToast } from './utils';
 import type { NavItem } from './utils';
 import type { TxType } from './data';
 import { Storage } from './storage';
@@ -36,6 +36,8 @@ function App(): JSX.Element {
     setActiveNav(page);
   }, []);
 
+  const toast = useToast();
+
   const handleExport = useCallback(() => {
     const json = Storage.exportData();
     const blob = new Blob([json], { type: 'application/json' });
@@ -46,6 +48,15 @@ function App(): JSX.Element {
     a.click();
     URL.revokeObjectURL(url);
   }, []);
+
+  const handleImport = useCallback((json: string) => {
+    if (Storage.importData(json)) {
+      toast('Data imported successfully', 'success');
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      toast('Invalid backup file — please select a valid Ore Ledger export', 'error');
+    }
+  }, [toast]);
 
   const handleClear = useCallback(() => {
     if (window.confirm('Clear ALL data? This cannot be undone.')) {
@@ -76,7 +87,7 @@ function App(): JSX.Element {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar activeNav={activeNav} onNavChange={(page: string) => handleNavigate(page)} onExport={handleExport} onClear={handleClear} theme={theme} onToggleTheme={toggleTheme} />
+      <Sidebar activeNav={activeNav} onNavChange={(page: string) => handleNavigate(page)} onExport={handleExport} onImport={handleImport} onClear={handleClear} theme={theme} onToggleTheme={toggleTheme} />
       <div style={{ marginLeft: 'var(--sidebar-w)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <TopBar title={pageTitle} cashBalance={ledger.summary.cash} />
         {renderPage()}

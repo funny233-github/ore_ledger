@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { ReactNode, JSX } from 'react';
 import { NAV_ITEMS, formatDate, formatCurrencyFull } from './utils';
 import type { NavItem, OreCostAnalysis } from './utils';
@@ -10,12 +11,29 @@ interface SidebarProps {
   activeNav: string;
   onNavChange: (page: string) => void;
   onExport: () => void;
+  onImport: (json: string) => void;
   onClear: () => void;
   theme: string;
   onToggleTheme: () => void;
 }
 
-export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onToggleTheme }: SidebarProps): JSX.Element {
+export function Sidebar({ activeNav, onNavChange, onExport, onImport, onClear, theme, onToggleTheme }: SidebarProps): JSX.Element {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      onImport(reader.result as string);
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
   return (
     <aside style={{
       width: 'var(--sidebar-w)',
@@ -122,6 +140,21 @@ export function Sidebar({ activeNav, onNavChange, onExport, onClear, theme, onTo
           >{theme === 'dark' ? '☀ Light' : '☾ Dark'}</button>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={handleImportClick} title="Import data from JSON"
+            style={{
+              flex: 1, padding: '6px 10px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-sidebar)',
+              background: 'transparent', cursor: 'pointer',
+              fontSize: '0.78rem', color: 'var(--text-sidebar-muted)',
+              fontFamily: 'inherit',
+              transition: 'all var(--transition)', fontWeight: 480,
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-light)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-sidebar)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-sidebar-muted)'; }}
+          >Import</button>
+          <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange}
+            style={{ display: 'none' }} />
           <button onClick={onExport} title="Export data as JSON"
             style={{
               flex: 1, padding: '6px 10px',
