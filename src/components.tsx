@@ -363,8 +363,8 @@ export function TransactionItem({ tx, onEdit, onDelete, showDelete, isLatest }: 
             transition: 'all var(--transition)', flexShrink: 0,
             fontFamily: 'inherit', opacity: 0.4,
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)'; (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLButtonElement).style.opacity = '0.4'; }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-subtle)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-dark)'; (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLButtonElement).style.opacity = '0.4'; }}
         >✎</button>
       )}
       {isLatest && onDelete && (
