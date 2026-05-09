@@ -825,7 +825,6 @@ export function DashboardView({ summary, recentTransactions, onNavigate, deleteT
       }}>
         <QuickActionBtn icon="↓" label="Buy Ore" color="var(--green)" onClick={() => onNavigate('new-entry', 'buy')} />
         <QuickActionBtn icon="↑" label="Sell Ore" color="var(--blue)" onClick={() => onNavigate('new-entry', 'sell')} />
-        <QuickActionBtn icon="⛏" label="Mine Sale" color="var(--amber)" onClick={() => onNavigate('new-entry', 'mine_sell')} />
         <QuickActionBtn icon="✕" label="Expense" color="var(--red)" onClick={() => onNavigate('new-entry', 'expense')} />
         <QuickActionBtn icon="⟳" label="Adjust" color="var(--accent)" onClick={() => onNavigate('new-entry', 'balance_adjust')} />
       </div>
@@ -986,7 +985,6 @@ interface TypeBtn {
 const TYPE_BTNS: TypeBtn[] = [
   { type: 'buy', icon: '↓', label: 'Buy', color: 'var(--green)' },
   { type: 'sell', icon: '↑', label: 'Sell', color: 'var(--blue)' },
-  { type: 'mine_sell', icon: '⛏', label: 'Mine Sale', color: 'var(--amber)' },
   { type: 'expense', icon: '✕', label: 'Expense', color: 'var(--red)' },
   { type: 'balance_adjust', icon: '⟳', label: 'Adjust', color: 'var(--accent)' },
 ];
@@ -1110,7 +1108,7 @@ export function NewEntryView({
             </div>
           )}
 
-          {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
+          {(txType === 'buy' || txType === 'sell') && (
             <OreSelector
               txType={txType}
               saleSource={saleSource}
@@ -1124,7 +1122,7 @@ export function NewEntryView({
             />
           )}
 
-          {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
+          {(txType === 'buy' || txType === 'sell') && (
             <FormField label="Quantity">
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input type="number" min="1" value={quantity} onChange={e => onQuantityChange(e.target.value)} placeholder="0"
@@ -1154,14 +1152,14 @@ export function NewEntryView({
             </FormField>
           )}
 
-          {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && (
+          {(txType === 'buy' || txType === 'sell') && (
             <FormField label="Unit Price">
               <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => onUnitPriceChange(e.target.value)} placeholder="0.00"
                 style={INPUT_STYLE} />
             </FormField>
           )}
 
-          {(txType === 'buy' || txType === 'sell' || txType === 'mine_sell') && quantity && unitPrice && (
+          {(txType === 'buy' || txType === 'sell') && quantity && unitPrice && (
             <div style={{
               padding: '10px 14px',
               background: 'var(--surface-hover)',
@@ -1266,8 +1264,7 @@ export function NewEntryView({
         <SectionCard title="Quick Tips">
           <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
             <div><span style={{ fontWeight: 620, color: 'var(--green)' }}>↓ Buy</span> — Buy ores for portfolio</div>
-            <div><span style={{ fontWeight: 620, color: 'var(--blue)' }}>↑ Sell</span> — Sell from portfolio or mined</div>
-            <div><span style={{ fontWeight: 620, color: 'var(--amber)' }}>⛏ Mine Sale</span> — Pure mining income</div>
+            <div><span style={{ fontWeight: 620, color: 'var(--blue)' }}>↑ Sell</span> — Sell from portfolio or mined (use Mined source for mining income)</div>
             <div><span style={{ fontWeight: 620, color: 'var(--red)' }}>✕ Expense</span> — Record spending</div>
             <div><span style={{ fontWeight: 620, color: 'var(--accent)' }}>⟳ Adjust</span> — Calibrate cash</div>
           </div>

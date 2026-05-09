@@ -3,7 +3,7 @@ import type { JSX } from 'react';
 import { useToast } from './utils';
 import type { ToastFn, OreCostAnalysis, LedgerController } from './utils';
 import { ORES } from './data';
-import type { Ore, TxType, PortfolioEntry } from './data';
+import type { Ore, TxType, PortfolioEntry, Transaction } from './data';
 import { DashboardView, TransactionsView, PortfolioView, NewEntryView } from './components';
 
 /* ========================================
@@ -259,7 +259,10 @@ class NewEntryPageController {
   }
 
   private _loadTransaction(tx: Transaction): void {
-    this._setTxTypeInternal(tx.type);
+    // Convert legacy mine_sell to sell+mined since Mine Sale is removed from creation UI
+    const normalizedType = tx.type === 'mine_sell' ? 'sell' : tx.type;
+    const normalizedSource = tx.type === 'mine_sell' ? 'mined' : (tx.source || 'portfolio');
+    this._setTxTypeInternal(normalizedType);
     this.editTxId = tx.id;
     this.date = tx.date;
     this.oreId = tx.asset || '';
@@ -268,7 +271,7 @@ class NewEntryPageController {
     this.description = tx.description || '';
     this.newBalance = tx.newBalance ? String(tx.newBalance) : '';
     this.note = tx.note || '';
-    this.saleSource = tx.source || 'portfolio';
+    this.saleSource = normalizedSource;
   }
 
   /* -- computed -- */
@@ -359,7 +362,7 @@ class NewEntryPageController {
       this.editTxId = null;
     }
 
-    if (this.txType === 'buy' || this.txType === 'sell' || this.txType === 'mine_sell') {
+    if (this.txType === 'buy' || this.txType === 'sell') {
       if (!this.oreId) { this.formError = 'Please select an ore'; this.notify(); return; }
       if (!q || q <= 0) { this.formError = 'Quantity must be greater than 0'; this.notify(); return; }
       if (!p || p <= 0) { this.formError = 'Unit price must be greater than 0'; this.notify(); return; }
@@ -388,13 +391,14 @@ class NewEntryPageController {
             }
           }
           const txMined = {
-            type: 'mine_sell' as TxType,
+            type: 'sell' as TxType,
             date: this.date,
             asset: this.oreId,
             quantity: minedQty,
             unitPrice: p,
             totalAmount: minedQty * p,
             note: this.note.trim() || undefined,
+            source: 'mined' as const,
           };
           this.ledger.addTransaction(txMined);
 
@@ -415,19 +419,18 @@ class NewEntryPageController {
 
     let totalAmount = 0;
     switch (this.txType) {
-      case 'buy':          totalAmount = -(q * p); break;
-      case 'sell':
-      case 'mine_sell':    totalAmount = q * p; break;
-      case 'expense':      totalAmount = -Math.abs(p); break;
+      case 'buy': totalAmount = -(q * p); break;
+      case 'sell': totalAmount = q * p; break;
+      case 'expense': totalAmount = -Math.abs(p); break;
       case 'balance_adjust': totalAmount = 0; break;
     }
 
     const tx = {
       type: this.txType,
       date: this.date,
-      asset: (this.txType === 'buy' || this.txType === 'sell' || this.txType === 'mine_sell') ? this.oreId : undefined,
-      quantity: (this.txType === 'buy' || this.txType === 'sell' || this.txType === 'mine_sell') ? q : undefined,
-      unitPrice: (this.txType === 'buy' || this.txType === 'sell' || this.txType === 'mine_sell') ? p : (this.txType === 'expense' ? p : undefined),
+      asset: (this.txType === 'buy' || this.txType === 'sell') ? this.oreId : undefined,
+      quantity: (this.txType === 'buy' || this.txType === 'sell') ? q : undefined,
+      unitPrice: (this.txType === 'buy' || this.txType === 'sell') ? p : (this.txType === 'expense' ? p : undefined),
       totalAmount: this.txType === 'balance_adjust' ? 0 : totalAmount,
       newBalance: this.txType === 'balance_adjust' ? parseFloat(this.newBalance) : undefined,
       description: this.txType === 'expense' ? this.description.trim() : undefined,
