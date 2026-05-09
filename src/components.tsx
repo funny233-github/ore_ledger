@@ -4,6 +4,7 @@ import { NAV_ITEMS, formatDate, formatCurrencyFull } from './utils';
 import type { NavItem, OreCostAnalysis } from './utils';
 import { ORES } from './data';
 import type { Ore, PortfolioEntryWithMeta, Transaction, TxType, LedgerSummary } from './data';
+import { version } from '../package.json';
 
 /* --- Sidebar props --- */
 
@@ -126,7 +127,7 @@ export function Sidebar({ activeNav, onNavChange, onExport, onImport, onClear, t
           letterSpacing: '0.03em',
           marginBottom: 8,
         }}>
-          <span>Ore Ledger v0.1</span>
+          <span>Ore Ledger v{version}</span>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <a href="https://github.com/funny233-github/ore_ledger" target="_blank" rel="noopener noreferrer"
               title="GitHub repository"
