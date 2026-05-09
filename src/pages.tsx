@@ -229,6 +229,7 @@ class NewEntryPageController {
   date: string;
   oreId: string = '';
   quantity: string = '';
+  totalPrice: string = '';
   unitPrice: string = '';
   description: string = '';
   newBalance: string = '';
@@ -267,6 +268,7 @@ class NewEntryPageController {
     this.date = tx.date;
     this.oreId = tx.asset || '';
     this.quantity = tx.quantity ? String(tx.quantity) : '';
+    this.totalPrice = (normalizedType === 'buy' || normalizedType === 'sell') && tx.totalAmount ? String(Math.abs(tx.totalAmount)) : '';
     this.unitPrice = tx.unitPrice ? String(tx.unitPrice) : '';
     this.description = tx.description || '';
     this.newBalance = tx.newBalance ? String(tx.newBalance) : '';
@@ -301,10 +303,15 @@ class NewEntryPageController {
   }
 
   get calculatedTotal(): number {
+    const tp = parseFloat(this.totalPrice) || 0;
+    return this.txType === 'buy' ? -tp : tp;
+  }
+
+  get avgUnitPrice(): number | null {
     const q = parseFloat(this.quantity) || 0;
-    const p = parseFloat(this.unitPrice) || 0;
-    const total = q * p;
-    return this.txType === 'buy' ? -total : total;
+    const tp = parseFloat(this.totalPrice) || 0;
+    if (!q || !tp) return null;
+    return tp / q;
   }
 
   get adjustmentDelta(): number | null {
@@ -317,9 +324,10 @@ class NewEntryPageController {
   get estimatedProfit(): number | null {
     if (this.txType !== 'sell' || !this.oreId || !this.quantity) return null;
     const q = parseFloat(this.quantity) || 0;
-    const p = parseFloat(this.unitPrice) || 0;
-    const received = q * p;
-    if (this.saleSource === 'mined') return received;
+    const m = parseFloat(this.totalPrice) || 0;
+    if (!m) return null;
+    const p = m / q;
+    if (this.saleSource === 'mined') return m;
     const holding = this.currentHolding;
     const portfolioQty = Math.min(q, holding.quantity);
     const minedQty = q - portfolioQty;
@@ -340,6 +348,7 @@ class NewEntryPageController {
     this.txType = type;
     this.oreId = '';
     this.quantity = '';
+    this.totalPrice = '';
     this.unitPrice = '';
     this.description = '';
     this.newBalance = '';
@@ -353,7 +362,8 @@ class NewEntryPageController {
     if (!this.date) { this.formError = 'Date is required'; this.notify(); return; }
 
     const q = parseInt(this.quantity, 10);
-    const p = parseFloat(this.unitPrice);
+    const tp = parseFloat(this.totalPrice);
+    const ep = parseFloat(this.unitPrice);  // expense amount
 
     // In edit mode: delete old first so portfolio state is correct for all subsequent calculations
     const wasEditing = !!this.editTxId;
@@ -365,12 +375,13 @@ class NewEntryPageController {
     if (this.txType === 'buy' || this.txType === 'sell') {
       if (!this.oreId) { this.formError = 'Please select an ore'; this.notify(); return; }
       if (!q || q <= 0) { this.formError = 'Quantity must be greater than 0'; this.notify(); return; }
-      if (!p || p <= 0) { this.formError = 'Unit price must be greater than 0'; this.notify(); return; }
+      if (!tp || tp <= 0) { this.formError = 'Total price must be greater than 0'; this.notify(); return; }
 
       if (this.txType === 'sell' && this.saleSource === 'portfolio') {
         const holding = this.ledger.getOreHolding(this.oreId);
         const portfolioQty = Math.min(q, holding.quantity);
         const minedQty = q - portfolioQty;
+        const unitP = tp / q;
 
         if (minedQty > 0) {
           if (portfolioQty > 0) {
@@ -379,8 +390,8 @@ class NewEntryPageController {
               date: this.date,
               asset: this.oreId,
               quantity: portfolioQty,
-              unitPrice: p,
-              totalAmount: portfolioQty * p,
+              unitPrice: unitP,
+              totalAmount: portfolioQty * unitP,
               note: this.note.trim() || undefined,
               source: 'portfolio' as const,
             };
@@ -395,8 +406,8 @@ class NewEntryPageController {
             date: this.date,
             asset: this.oreId,
             quantity: minedQty,
-            unitPrice: p,
-            totalAmount: minedQty * p,
+            unitPrice: unitP,
+            totalAmount: minedQty * unitP,
             note: this.note.trim() || undefined,
             source: 'mined' as const,
           };
@@ -411,17 +422,18 @@ class NewEntryPageController {
       }
     } else if (this.txType === 'expense') {
       if (!this.description.trim()) { this.formError = 'Description is required'; this.notify(); return; }
-      if (!p || p <= 0) { this.formError = 'Amount must be greater than 0'; this.notify(); return; }
+      if (!ep || ep <= 0) { this.formError = 'Amount must be greater than 0'; this.notify(); return; }
     } else if (this.txType === 'balance_adjust') {
       const nb = parseFloat(this.newBalance);
       if (isNaN(nb) || nb < 0) { this.formError = 'Please enter a valid cash balance'; this.notify(); return; }
     }
 
+    const unitP = tp > 0 ? tp / q : 0;
     let totalAmount = 0;
     switch (this.txType) {
-      case 'buy': totalAmount = -(q * p); break;
-      case 'sell': totalAmount = q * p; break;
-      case 'expense': totalAmount = -Math.abs(p); break;
+      case 'buy': totalAmount = -tp; break;
+      case 'sell': totalAmount = tp; break;
+      case 'expense': totalAmount = -Math.abs(ep); break;
       case 'balance_adjust': totalAmount = 0; break;
     }
 
@@ -430,7 +442,7 @@ class NewEntryPageController {
       date: this.date,
       asset: (this.txType === 'buy' || this.txType === 'sell') ? this.oreId : undefined,
       quantity: (this.txType === 'buy' || this.txType === 'sell') ? q : undefined,
-      unitPrice: (this.txType === 'buy' || this.txType === 'sell') ? p : (this.txType === 'expense' ? p : undefined),
+      unitPrice: (this.txType === 'buy' || this.txType === 'sell') ? unitP : (this.txType === 'expense' ? ep : undefined),
       totalAmount: this.txType === 'balance_adjust' ? 0 : totalAmount,
       newBalance: this.txType === 'balance_adjust' ? parseFloat(this.newBalance) : undefined,
       description: this.txType === 'expense' ? this.description.trim() : undefined,
@@ -455,6 +467,7 @@ class NewEntryPageController {
     this._loadedEditTxId = null;
     this.oreId = '';
     this.quantity = '';
+    this.totalPrice = '';
     this.unitPrice = '';
     this.description = '';
     this.newBalance = '';
@@ -491,8 +504,11 @@ export function NewEntryPage({ ledger, preselectedType, onNavigate, editTxId }: 
       onOreIdChange={(id) => { ctrl.current!.oreId = id; notify(); }}
       quantity={ctrl.current.quantity}
       onQuantityChange={(v) => { ctrl.current!.quantity = v; notify(); }}
+      totalPrice={ctrl.current.totalPrice}
+      onTotalPriceChange={(v) => { ctrl.current!.totalPrice = v; notify(); }}
       unitPrice={ctrl.current.unitPrice}
       onUnitPriceChange={(v) => { ctrl.current!.unitPrice = v; notify(); }}
+      avgUnitPrice={ctrl.current.avgUnitPrice}
       description={ctrl.current.description}
       onDescriptionChange={(v) => { ctrl.current!.description = v; notify(); }}
       newBalance={ctrl.current.newBalance}

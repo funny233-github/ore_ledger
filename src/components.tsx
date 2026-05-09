@@ -1000,8 +1000,11 @@ interface NewEntryViewProps {
   onOreIdChange: (id: string) => void;
   quantity: string;
   onQuantityChange: (qty: string) => void;
+  totalPrice: string;
+  onTotalPriceChange: (price: string) => void;
   unitPrice: string;
   onUnitPriceChange: (price: string) => void;
+  avgUnitPrice: number | null;
   description: string;
   onDescriptionChange: (desc: string) => void;
   newBalance: string;
@@ -1027,7 +1030,9 @@ export function NewEntryView({
   date, onDateChange,
   oreId, onOreIdChange,
   quantity, onQuantityChange,
+  totalPrice, onTotalPriceChange,
   unitPrice, onUnitPriceChange,
+  avgUnitPrice,
   description, onDescriptionChange,
   newBalance, onNewBalanceChange,
   note, onNoteChange,
@@ -1153,13 +1158,20 @@ export function NewEntryView({
           )}
 
           {(txType === 'buy' || txType === 'sell') && (
-            <FormField label="Unit Price">
-              <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => onUnitPriceChange(e.target.value)} placeholder="0.00"
-                style={INPUT_STYLE} />
+            <FormField label={txType === 'buy' ? 'Total Price Paid' : 'Total Received'}>
+              <input type="number" min="0" step="0.01" value={totalPrice} onChange={e => onTotalPriceChange(e.target.value)}
+                placeholder="0.00" style={INPUT_STYLE} />
+              {avgUnitPrice !== null && (
+                <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Avg unit price: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550 }}>
+                    {formatCurrencyFull(avgUnitPrice)}
+                  </span> / unit
+                </div>
+              )}
             </FormField>
           )}
 
-          {(txType === 'buy' || txType === 'sell') && quantity && unitPrice && (
+          {(txType === 'buy' || txType === 'sell') && quantity && totalPrice && (
             <div style={{
               padding: '10px 14px',
               background: 'var(--surface-hover)',
@@ -1167,7 +1179,7 @@ export function NewEntryView({
               fontSize: '0.82rem',
               color: 'var(--text-secondary)',
             }}>
-              Total: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550, color: txType === 'buy' ? 'var(--red)' : 'var(--green)' }}>
+              {txType === 'buy' ? 'Spent' : 'Income'}: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 550, color: txType === 'buy' ? 'var(--red)' : 'var(--green)' }}>
                 {txType === 'buy' ? '-' : '+'}{formatCurrencyFull(Math.abs(calculatedTotal))}
               </span>
             </div>
