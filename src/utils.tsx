@@ -121,6 +121,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard',     label: 'Dashboard',     icon: '◈' },
   { id: 'transactions',  label: 'Transactions',  icon: '↕' },
   { id: 'portfolio',     label: 'Portfolio',     icon: '⊞' },
+  { id: 'analytics',     label: 'Analytics',     icon: '▦' },
   { id: 'new-entry',     label: 'New Entry',     icon: '+'  },
 ];
 

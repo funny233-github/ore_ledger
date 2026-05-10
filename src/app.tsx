@@ -6,7 +6,7 @@ import type { NavItem } from './utils';
 import type { TxType } from './data';
 import { Storage } from './storage';
 import { Sidebar, TopBar } from './components';
-import { DashboardPage, TransactionsPage, PortfolioPage, NewEntryPage } from './pages';
+import { DashboardPage, TransactionsPage, PortfolioPage, AnalyticsPage, NewEntryPage } from './pages';
 
 /* ====================================================
    APP COMPONENT
@@ -86,6 +86,8 @@ function App(): JSX.Element {
         return <TransactionsPage ledger={ledger} onNavigate={handleNavigate} onEditTransaction={handleEditTransaction} />;
       case 'portfolio':
         return <PortfolioPage ledger={ledger} />;
+      case 'analytics':
+        return <AnalyticsPage ledger={ledger} theme={theme} />;
       case 'new-entry':
         return <NewEntryPage ledger={ledger} preselectedType={(preselectedType ?? undefined) as TxType | undefined} onNavigate={handleNavigate} editTxId={editTxId ?? undefined} />;
       default:

@@ -5,6 +5,7 @@ import type { ToastFn, OreCostAnalysis, LedgerController } from './utils';
 import { ORES } from './data';
 import type { Ore, TxType, PortfolioEntry, Transaction } from './data';
 import { DashboardView, TransactionsView, PortfolioView, NewEntryView } from './components';
+import { AnalyticsView } from './analytics-view';
 
 /* ========================================
    DASHBOARD PAGE
@@ -475,6 +476,51 @@ class NewEntryPageController {
     this.formError = '';
     this.date = new Date().toISOString().split('T')[0];
   }
+}
+
+/* ========================================
+   ANALYTICS PAGE
+   ======================================== */
+
+interface AnalyticsPageProps {
+  ledger: import('./utils').LedgerController;
+  theme: string;
+}
+
+class AnalyticsPageController {
+  private ledger!: import('./utils').LedgerController;
+  private notify!: () => void;
+
+  init(notify: () => void): void {
+    this.notify = notify;
+  }
+
+  update(ledger: import('./utils').LedgerController): void {
+    this.ledger = ledger;
+  }
+
+  get transactions() { return this.ledger.transactions; }
+  get portfolio() { return this.ledger.state.portfolio; }
+}
+
+export function AnalyticsPage({ ledger, theme }: AnalyticsPageProps): JSX.Element {
+  const [, forceUpdate] = useState(0);
+  const notify = () => forceUpdate(n => n + 1);
+
+  const ctrl = useRef<AnalyticsPageController>(null);
+  if (!ctrl.current) {
+    ctrl.current = new AnalyticsPageController();
+    ctrl.current.init(notify);
+  }
+  ctrl.current.update(ledger);
+
+  return (
+    <AnalyticsView
+      transactions={ctrl.current.transactions}
+      portfolio={ctrl.current.portfolio}
+      theme={theme}
+    />
+  );
 }
 
 export function NewEntryPage({ ledger, preselectedType, onNavigate, editTxId }: NewEntryPageProps): JSX.Element {
