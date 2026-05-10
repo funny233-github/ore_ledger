@@ -99,6 +99,77 @@ export function computeOreReturns(
   return results.sort((a, b) => b.totalReturn - a.totalReturn);
 }
 
+class PortfolioState {
+  cash = 0;
+  holdings: Record<string, PortfolioEntry> = {};
+
+  buy(asset: string, quantity: number, amount: number) {
+    const paid = Math.abs(amount);
+    if (!this.holdings[asset]) {
+      this.holdings[asset] = { quantity: 0, totalCost: 0, avgCost: 0 };
+    }
+    const h = this.holdings[asset];
+    h.quantity += quantity;
+    h.totalCost += paid;
+    h.avgCost = r2(h.totalCost / h.quantity);
+    this.cash -= paid;
+  }
+
+  sell(asset: string, quantity: number, amount: number, costOfSold?: number) {
+    const h = this.holdings[asset];
+    if (h) {
+      h.quantity -= quantity;
+      h.totalCost -= costOfSold || 0;
+      if (h.quantity <= 0) {
+        delete this.holdings[asset];
+      } else {
+        h.avgCost = r2(h.totalCost / h.quantity);
+      }
+    }
+    this.cash += amount;
+  }
+
+  mineSell(amount: number) {
+    this.cash += amount;
+  }
+
+  expense(amount: number) {
+    this.cash -= Math.abs(amount);
+  }
+
+  adjustBalance(newBalance: number) {
+    this.cash = newBalance;
+  }
+
+  writeOff(asset: string, quantity: number) {
+    const h = this.holdings[asset];
+    if (h) {
+      h.quantity -= quantity;
+      if (h.quantity <= 0) {
+        delete this.holdings[asset];
+      }
+    }
+  }
+
+  get portfolioValue(): number {
+    return r2(
+      Object.values(this.holdings).reduce(
+        (s, p) => s + r2(p.quantity * p.avgCost), 0
+      )
+    );
+  }
+
+  snapshot(date: string): BalancePoint {
+    const pv = this.portfolioValue;
+    return {
+      date,
+      cash: r2(this.cash),
+      portfolioValue: pv,
+      netWorth: r2(this.cash + pv),
+    };
+  }
+}
+
 export function computeBalanceHistory(
   transactions: Transaction[]
 ): BalancePoint[] {
@@ -107,75 +178,36 @@ export function computeBalanceHistory(
     return (a.createdAt || 0) - (b.createdAt || 0);
   });
 
-  let cash = 0;
-  const port: Record<string, PortfolioEntry> = {};
-  const points: BalancePoint[] = [];
-
-  points.push({ date: '', cash: 0, portfolioValue: 0, netWorth: 0 });
+  const state = new PortfolioState();
+  const points: BalancePoint[] = [state.snapshot('')];
 
   for (const tx of sorted) {
     switch (tx.type) {
-      case 'buy': {
-        const id = tx.asset!;
-        const paid = Math.abs(tx.totalAmount);
-        if (!port[id]) port[id] = { quantity: 0, totalCost: 0, avgCost: 0 };
-        port[id].quantity += tx.quantity!;
-        port[id].totalCost += paid;
-        port[id].avgCost = r2(port[id].totalCost / port[id].quantity);
-        cash -= paid;
+      case 'buy':
+        state.buy(tx.asset!, tx.quantity!, tx.totalAmount);
         break;
-      }
-      case 'sell': {
+      case 'sell':
         if (tx.source === 'portfolio' && tx.asset) {
-          const id = tx.asset;
-          if (port[id]) {
-            port[id].quantity -= tx.quantity!;
-            port[id].totalCost -= tx.costOfSold || 0;
-            if (port[id].quantity <= 0) {
-              delete port[id];
-            } else {
-              port[id].avgCost = r2(port[id].totalCost / port[id].quantity);
-            }
-          }
-          cash += tx.totalAmount;
+          state.sell(tx.asset, tx.quantity!, tx.totalAmount, tx.costOfSold);
         } else {
-          cash += tx.totalAmount;
+          state.mineSell(tx.totalAmount);
         }
         break;
-      }
-      case 'mine_sell': {
-        cash += tx.totalAmount;
+      case 'mine_sell':
+        state.mineSell(tx.totalAmount);
         break;
-      }
-      case 'expense': {
-        cash -= Math.abs(tx.totalAmount);
+      case 'expense':
+        state.expense(tx.totalAmount);
         break;
-      }
-      case 'balance_adjust': {
-        cash = tx.newBalance ?? cash;
+      case 'balance_adjust':
+        state.adjustBalance(tx.newBalance!);
         break;
-      }
-      case 'write_off': {
-        if (tx.asset && port[tx.asset]) {
-          port[tx.asset].quantity -= tx.quantity!;
-          if (port[tx.asset].quantity <= 0) {
-            delete port[tx.asset];
-          }
-        }
+      case 'write_off':
+        if (tx.asset) state.writeOff(tx.asset, tx.quantity!);
         break;
-      }
     }
 
-    const portfolioValue = r2(
-      Object.values(port).reduce((s, p) => s + r2(p.quantity * p.avgCost), 0)
-    );
-
-    points.push({
-      date: tx.date,
-      cash: r2(cash),
-      portfolioValue,
-      netWorth: r2(cash + portfolioValue),
-    });
+    points.push(state.snapshot(tx.date));
   }
 
   return points;
