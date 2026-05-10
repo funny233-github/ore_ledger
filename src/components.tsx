@@ -105,7 +105,7 @@ export function Sidebar({ activeNav, onNavChange, onExport, onImport, onClear, t
             <span style={{
               width: 22, height: 22,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1rem',
+              fontSize: '1.6rem',
               opacity: activeNav === item.id ? 1 : 0.5,
               color: activeNav === item.id ? 'var(--accent)' : 'var(--text-sidebar)',
               flexShrink: 0,

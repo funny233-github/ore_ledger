@@ -1,8 +1,8 @@
+import { useState, useCallback, useEffect } from 'react';
 import type { JSX } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
-  LineChart,
   BarChart,
   PieChart,
   Line,
@@ -16,11 +16,13 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import type { OreReturnData, BalancePoint, CompositionItem, CumulativePnlPoint } from './analytics';
+import type { OreReturnData, BalancePoint, CompositionItem } from './analytics';
 
 const COLORS = {
   cash: '#3b82f6',
+  portfolioValue: '#f59e0b',
   netWorth: '#10b981',
+  cumulativePnl: '#8b5cf6',
   realized: '#3b82f6',
   unrealized: '#10b981',
   negative: '#ef4444',
@@ -49,29 +51,124 @@ interface ChartThemeProps {
 
 /* ─── Net Worth Trend ─── */
 
-export function NetWorthTrendChart({ data, theme }: { data: BalancePoint[] } & ChartThemeProps): JSX.Element {
-  const c = chartColors(theme);
+interface TrendLine {
+  key: string;
+  label: string;
+  color: string;
+}
+
+const TREND_LINES: TrendLine[] = [
+  { key: 'netWorth', label: 'Net Worth', color: COLORS.netWorth },
+  { key: 'portfolioValue', label: 'Portfolio Value', color: COLORS.portfolioValue },
+  { key: 'cash', label: 'Cash Balance', color: COLORS.cash },
+  { key: 'cumulativePnl', label: 'Cumulative P&L', color: COLORS.cumulativePnl },
+];
+
+function ToggleSwitch({ on, color }: { on: boolean; color: string }): JSX.Element {
   return (
-    <ResponsiveContainer width="100%" height={320}>
-      <ComposedChart data={data}>
-        <defs>
-          <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={COLORS.netWorth} stopOpacity={0.12} />
-            <stop offset="100%" stopColor={COLORS.netWorth} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: c.text }} minTickGap={40} />
-        <YAxis tick={{ fontSize: 11, fill: c.text }} />
-        <Tooltip
-          contentStyle={{ background: c.tooltipBg, border: `1px solid ${c.tooltipBorder}`, borderRadius: 8, fontSize: 13 }}
-          formatter={(v: any) => (typeof v === "number" ? v.toFixed(1) : String(v))}
-        />
-        <Legend />
-        <Area type="monotone" dataKey="netWorth" stroke={COLORS.netWorth} fill="url(#nwGrad)" name="Net Worth" strokeWidth={2} dot={false} />
-        <Line type="monotone" dataKey="cash" stroke={COLORS.cash} name="Cash Balance" strokeWidth={2} dot={false} />
-      </ComposedChart>
-    </ResponsiveContainer>
+    <div style={{
+      width: 22, height: 22, borderRadius: 'var(--radius-sm)',
+      border: on ? `2px solid ${color}` : '1.5px solid var(--border)',
+      background: on ? color : 'transparent',
+      transition: 'all 150ms',
+      flexShrink: 0,
+    }} />
+  );
+}
+
+interface NetWorthTrendChartProps extends ChartThemeProps {
+  data: BalancePoint[];
+  trendData: (BalancePoint & { cumulativePnl: number })[];
+}
+
+export function NetWorthTrendChart({ data, trendData, theme }: NetWorthTrendChartProps): JSX.Element {
+  const c = chartColors(theme);
+  const [lineState, setLineState] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('ore_ledger_chart_toggles');
+      if (saved) return { netWorth: true, portfolioValue: false, cash: false, cumulativePnl: false, ...JSON.parse(saved) };
+    } catch {}
+    return { netWorth: true, portfolioValue: false, cash: false, cumulativePnl: false };
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('ore_ledger_chart_toggles', JSON.stringify(lineState)); }
+    catch {}
+  }, [lineState]);
+
+  const toggle = useCallback((key: string) => {
+    setLineState(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const chartData = trendData.length > 0 ? trendData : data;
+
+  return (
+    <div>
+      {/* Toggle switches (redstone levers) */}
+      <div style={{
+        display: 'flex', gap: 16, marginBottom: 12,
+        flexWrap: 'wrap', alignItems: 'center',
+      }}>
+        {TREND_LINES.map(line => (
+          <div
+            key={line.key}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') toggle(line.key); }}
+            onClick={() => toggle(line.key)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              cursor: 'pointer', userSelect: 'none',
+              fontSize: '0.82rem', color: 'var(--text-secondary)',
+              opacity: lineState[line.key] ? 1 : 0.45,
+              transition: 'opacity 150ms',
+            }}
+          >
+            <ToggleSwitch
+              on={lineState[line.key]}
+              color={line.color}
+            />
+            <span style={{
+              color: lineState[line.key] ? line.color : 'var(--text-secondary)',
+              fontWeight: lineState[line.key] ? 550 : 400,
+              transition: 'color 150ms',
+            }}>
+              {line.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <ResponsiveContainer width="100%" height={320}>
+        <ComposedChart data={chartData}>
+          <defs>
+            <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={COLORS.netWorth} stopOpacity={0.12} />
+              <stop offset="100%" stopColor={COLORS.netWorth} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
+          <XAxis dataKey="date" tick={{ fontSize: 11, fill: c.text }} minTickGap={40} />
+          <YAxis tick={{ fontSize: 11, fill: c.text }} />
+          <Tooltip
+            contentStyle={{ background: c.tooltipBg, border: `1px solid ${c.tooltipBorder}`, borderRadius: 8, fontSize: 13 }}
+            formatter={(v: any) => (typeof v === "number" ? v.toFixed(1) : String(v))}
+          />
+          {lineState.netWorth && (
+            <Area type="monotone" dataKey="netWorth" stroke={COLORS.netWorth} fill="url(#nwGrad)" name="Net Worth" strokeWidth={2} dot={false} />
+          )}
+          {lineState.portfolioValue && (
+            <Line type="monotone" dataKey="portfolioValue" stroke={COLORS.portfolioValue} name="Portfolio Value" strokeWidth={2} dot={false} />
+          )}
+          {lineState.cash && (
+            <Line type="monotone" dataKey="cash" stroke={COLORS.cash} name="Cash Balance" strokeWidth={2} dot={false} />
+          )}
+          {lineState.cumulativePnl && (
+            <Line type="monotone" dataKey="cumulativePnl" stroke={COLORS.cumulativePnl} name="Cumulative P&L" strokeWidth={2} dot={false} strokeDasharray="4 3" />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -158,7 +255,7 @@ export function ReturnRateChart({ data, theme }: { data: OreReturnData[] } & Cha
         <YAxis type="category" dataKey="oreName" tick={{ fontSize: 12, fill: c.text }} width={90} />
         <Tooltip
           contentStyle={{ background: c.tooltipBg, border: `1px solid ${c.tooltipBorder}`, borderRadius: 8, fontSize: 13 }}
-          formatter={(v: any) => [typeof v === 'number' ? `${v.toFixed(1)}%` : String(v), 'Return Rate']}
+          formatter={(v: any, name: any) => [typeof v === "number" ? v.toFixed(1) : String(v), name]}
         />
         <Legend />
         <Bar dataKey="returnRate" name="Return Rate" minPointSize={2}>
@@ -167,30 +264,6 @@ export function ReturnRateChart({ data, theme }: { data: OreReturnData[] } & Cha
           ))}
         </Bar>
       </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-/* ─── Cumulative P&L ─── */
-
-export function CumulativePnlChart({ data, theme }: { data: CumulativePnlPoint[] } & ChartThemeProps): JSX.Element {
-  const c = chartColors(theme);
-  if (data.length === 0) {
-    return <EmptyChartMessage />;
-  }
-  return (
-    <ResponsiveContainer width="100%" height={320}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: c.text }} minTickGap={40} />
-        <YAxis tick={{ fontSize: 11, fill: c.text }} />
-        <Tooltip
-          contentStyle={{ background: c.tooltipBg, border: `1px solid ${c.tooltipBorder}`, borderRadius: 8, fontSize: 13 }}
-          formatter={(v: any) => [typeof v === 'number' ? v.toFixed(1) : String(v), 'Cumulative P&L']}
-        />
-        <Legend />
-        <Line type="monotone" dataKey="total" stroke={COLORS.netWorth} name="Cumulative P&L" strokeWidth={2} dot={false} />
-      </LineChart>
     </ResponsiveContainer>
   );
 }

@@ -15,7 +15,6 @@ import {
   PortfolioCompositionChart,
   OreReturnChart,
   ReturnRateChart,
-  CumulativePnlChart,
 } from './charts';
 
 interface AnalyticsViewProps {
@@ -26,6 +25,7 @@ interface AnalyticsViewProps {
 
 const DATE_RANGES = [
   { label: 'All Time', value: 'all' },
+  { label: '1 Week', value: '7d' },
   { label: '30 Days', value: '30d' },
   { label: '90 Days', value: '90d' },
   { label: 'This Year', value: 'year' },
@@ -45,6 +45,15 @@ export function AnalyticsView({ transactions, portfolio, theme }: AnalyticsViewP
   const oreReturns = useMemo(() => computeOreReturns(filteredTxs, portfolio), [filteredTxs, portfolio]);
   const composition = useMemo(() => computePortfolioComposition(portfolio), [portfolio]);
   const cumulativePnl = useMemo(() => computeCumulativePnl(filteredTxs), [filteredTxs]);
+
+  const trendData = useMemo(() => {
+    let lastPnl = 0;
+    const pnlMap = new Map(cumulativePnl.map(p => [p.date, p.total]));
+    return balanceHistory.map(point => {
+      if (pnlMap.has(point.date)) lastPnl = pnlMap.get(point.date)!;
+      return { ...point, cumulativePnl: lastPnl };
+    });
+  }, [balanceHistory, cumulativePnl]);
 
   const noTx = filteredTxs.length === 0;
 
@@ -91,7 +100,7 @@ export function AnalyticsView({ transactions, portfolio, theme }: AnalyticsViewP
           {/* Net Worth Trend */}
           <SectionCard title="Net Worth Trend">
             {balanceHistory.length > 1 ? (
-              <NetWorthTrendChart data={balanceHistory} theme={theme} />
+              <NetWorthTrendChart data={balanceHistory} trendData={trendData} theme={theme} />
             ) : (
               <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Not enough data points for a trend line
@@ -99,22 +108,10 @@ export function AnalyticsView({ transactions, portfolio, theme }: AnalyticsViewP
             )}
           </SectionCard>
 
-          {/* Portfolio Composition + Cumulative P&L side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-            <SectionCard title="Portfolio Composition">
-              <PortfolioCompositionChart data={composition} theme={theme} />
-            </SectionCard>
-
-            <SectionCard title="Cumulative Trading Profit">
-              {cumulativePnl.length > 0 ? (
-                <CumulativePnlChart data={cumulativePnl} theme={theme} />
-              ) : (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  No sell transactions yet
-                </div>
-              )}
-            </SectionCard>
-          </div>
+          {/* Portfolio Composition */}
+          <SectionCard title="Portfolio Composition">
+            <PortfolioCompositionChart data={composition} theme={theme} />
+          </SectionCard>
 
           {/* Ore Return Analysis */}
           <SectionCard title="Ore Return Analysis">

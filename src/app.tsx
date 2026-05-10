@@ -13,7 +13,10 @@ import { DashboardPage, TransactionsPage, PortfolioPage, AnalyticsPage, NewEntry
    ==================================================== */
 
 function App(): JSX.Element {
-  const [activeNav, setActiveNav] = useState('dashboard');
+  const [activeNav, setActiveNav] = useState(() => {
+    try { return localStorage.getItem('ore_ledger_active_nav') || 'dashboard'; }
+    catch { return 'dashboard'; }
+  });
   const [preselectedType, setPreselectedType] = useState<string | null>(null);
   const [editTxId, setEditTxId] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(() => {
@@ -27,6 +30,11 @@ function App(): JSX.Element {
     try { localStorage.setItem('ore_ledger_theme', theme); }
     catch { /* ignore */ }
   }, [theme]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ore_ledger_active_nav', activeNav); }
+    catch { /* ignore */ }
+  }, [activeNav]);
 
   const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');

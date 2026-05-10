@@ -223,6 +223,11 @@ export function getDateRange(
   const endDate = today.toISOString().split('T')[0];
 
   switch (range) {
+    case '7d': {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 7);
+      return { startDate: d.toISOString().split('T')[0], endDate };
+    }
     case '30d': {
       const d = new Date(today);
       d.setDate(d.getDate() - 30);
