@@ -33,6 +33,7 @@ const ORE_PALETTE = [
   '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
   '#84cc16', '#14b8a6', '#d946ef', '#0ea5e9',
   '#e11d48', '#65a30d', '#7c3aed', '#0891b2',
+  '#fbbf24', '#92400e',
 ];
 
 function chartColors(theme: string) {

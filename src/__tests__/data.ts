@@ -8,16 +8,16 @@ import {
 } from '../data';
 
 describe('ORES', () => {
-  it('contains 16 ores', () => {
-    expect(ORES).toHaveLength(16);
+  it('contains 18 ores', () => {
+    expect(ORES).toHaveLength(18);
   });
 
-  it('has 7 shallow, 7 deep, 2 nether ores', () => {
+  it('has 8 shallow, 8 deep, 2 nether ores', () => {
     const shallow = ORES.filter(o => o.category === 'shallow');
     const deep = ORES.filter(o => o.category === 'deep');
     const nether = ORES.filter(o => o.category === 'nether');
-    expect(shallow).toHaveLength(7);
-    expect(deep).toHaveLength(7);
+    expect(shallow).toHaveLength(8);
+    expect(deep).toHaveLength(8);
     expect(nether).toHaveLength(2);
   });
 

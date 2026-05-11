@@ -13,18 +13,20 @@ export interface Ore {
 }
 
 export const ORES: Ore[] = [
-  // Shallow (7)
+  // Shallow (8)
   { id: 'shallow_coal',       name: 'Shallow Coal',       category: 'shallow' },
   { id: 'shallow_copper',     name: 'Shallow Copper',     category: 'shallow' },
   { id: 'shallow_iron',       name: 'Shallow Iron',       category: 'shallow' },
+  { id: 'shallow_gold',       name: 'Shallow Gold',       category: 'shallow' },
   { id: 'shallow_diamond',    name: 'Shallow Diamond',    category: 'shallow' },
   { id: 'shallow_emerald',    name: 'Shallow Emerald',    category: 'shallow' },
   { id: 'shallow_redstone',   name: 'Shallow Redstone',   category: 'shallow' },
   { id: 'shallow_lapis',      name: 'Shallow Lapis Lazuli', category: 'shallow' },
-  // Deep (7)
+  // Deep (8)
   { id: 'deep_coal',          name: 'Deep Coal',          category: 'deep' },
   { id: 'deep_copper',        name: 'Deep Copper',        category: 'deep' },
   { id: 'deep_iron',          name: 'Deep Iron',          category: 'deep' },
+  { id: 'deep_gold',          name: 'Deep Gold',          category: 'deep' },
   { id: 'deep_diamond',       name: 'Deep Diamond',       category: 'deep' },
   { id: 'deep_emerald',       name: 'Deep Emerald',       category: 'deep' },
   { id: 'deep_redstone',      name: 'Deep Redstone',      category: 'deep' },
