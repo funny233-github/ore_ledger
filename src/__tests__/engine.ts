@@ -126,7 +126,7 @@ describe('LedgerEngine.processSell (portfolio)', () => {
   it('reduces portfolio quantity and adds cash', () => {
     let state = empty();
     state = LedgerEngine.processBuy(state, buyTx({ quantity: 10, totalAmount: 150 }));
-    const result = LedgerEngine.processSell(state, sellTx({ quantity: 4, totalAmount: 80 }));
+    const result = LedgerEngine.processSell(state, sellTx({ quantity: 4, totalAmount: 80 })) as LedgerState;
     expect(result.portfolio['shallow_iron'].quantity).toBe(6);
     expect(result.portfolio['shallow_iron'].totalCost).toBeCloseTo(90, 2);
     expect(result.cash).toBe(-150 + 80);
@@ -135,7 +135,7 @@ describe('LedgerEngine.processSell (portfolio)', () => {
   it('calculates correct profit', () => {
     let state = empty();
     state = LedgerEngine.processBuy(state, buyTx({ quantity: 10, totalAmount: 150 }));
-    const result = LedgerEngine.processSell(state, sellTx({ quantity: 5, totalAmount: 100 }));
+    const result = LedgerEngine.processSell(state, sellTx({ quantity: 5, totalAmount: 100 })) as LedgerState;
     const tx = result.transactions.find(t => t.type === 'sell')!;
     expect(tx.costOfSold).toBe(75);
     expect(tx.profit).toBe(25);
@@ -145,7 +145,7 @@ describe('LedgerEngine.processSell (portfolio)', () => {
   it('zeroes out portfolio entry when fully sold', () => {
     let state = empty();
     state = LedgerEngine.processBuy(state, buyTx({ quantity: 5, totalAmount: 75 }));
-    const result = LedgerEngine.processSell(state, sellTx({ quantity: 5, totalAmount: 100 }));
+    const result = LedgerEngine.processSell(state, sellTx({ quantity: 5, totalAmount: 100 })) as LedgerState;
     expect(result.portfolio['shallow_iron'].quantity).toBe(0);
     expect(result.portfolio['shallow_iron'].totalCost).toBe(0);
     expect(result.portfolio['shallow_iron'].avgCost).toBe(0);
@@ -164,20 +164,20 @@ describe('LedgerEngine.processSell (portfolio)', () => {
 describe('LedgerEngine.processSell (mined)', () => {
   it('adds cash and mining income', () => {
     const state = empty();
-    const result = LedgerEngine.processSell(state, sellTx({ source: 'mined', totalAmount: 500 }));
+    const result = LedgerEngine.processSell(state, sellTx({ source: 'mined', totalAmount: 500 })) as LedgerState;
     expect(result.cash).toBe(500);
     expect(result.metadata.totalMiningIncome).toBe(500);
   });
 
   it('does not affect portfolio', () => {
     const state = empty();
-    const result = LedgerEngine.processSell(state, sellTx({ source: 'mined', totalAmount: 500 }));
+    const result = LedgerEngine.processSell(state, sellTx({ source: 'mined', totalAmount: 500 })) as LedgerState;
     expect(result.portfolio).toEqual({});
   });
 
   it('records profit field on transaction', () => {
     const state = empty();
-    const result = LedgerEngine.processSell(state, sellTx({ source: 'mined', totalAmount: 300 }));
+    const result = LedgerEngine.processSell(state, sellTx({ source: 'mined', totalAmount: 300 })) as LedgerState;
     const tx = result.transactions.find(t => t.type === 'sell')!;
     expect(tx.profit).toBe(300);
     expect(tx.source).toBe('mined');
@@ -250,7 +250,7 @@ describe('LedgerEngine.processWriteOff', () => {
   it('removes quantity from portfolio without affecting cash', () => {
     let state = empty();
     state = LedgerEngine.processBuy(state, buyTx({ quantity: 10, totalAmount: 150 }));
-    const result = LedgerEngine.processWriteOff(state, writeOffTx({ quantity: 3 }));
+    const result = LedgerEngine.processWriteOff(state, writeOffTx({ quantity: 3 })) as LedgerState;
     expect(result.portfolio['shallow_iron'].quantity).toBe(7);
     expect(result.cash).toBe(-150);
   });
@@ -258,7 +258,7 @@ describe('LedgerEngine.processWriteOff', () => {
   it('records lossAmount and previousQuantity on transaction', () => {
     let state = empty();
     state = LedgerEngine.processBuy(state, buyTx({ quantity: 10, totalAmount: 150 }));
-    const result = LedgerEngine.processWriteOff(state, writeOffTx({ quantity: 4 }));
+    const result = LedgerEngine.processWriteOff(state, writeOffTx({ quantity: 4 })) as LedgerState;
     const tx = result.transactions.find(t => t.type === 'write_off')!;
     expect(tx.lossAmount).toBe(60);
     expect(tx.previousQuantity).toBe(10);
@@ -267,7 +267,7 @@ describe('LedgerEngine.processWriteOff', () => {
   it('zeroes out entry when fully written off', () => {
     let state = empty();
     state = LedgerEngine.processBuy(state, buyTx({ quantity: 5, totalAmount: 75 }));
-    const result = LedgerEngine.processWriteOff(state, writeOffTx({ quantity: 5 }));
+    const result = LedgerEngine.processWriteOff(state, writeOffTx({ quantity: 5 })) as LedgerState;
     expect(result.portfolio['shallow_iron'].quantity).toBe(0);
     expect(result.portfolio['shallow_iron'].totalCost).toBe(0);
     expect(result.portfolio['shallow_iron'].avgCost).toBe(0);
@@ -307,7 +307,7 @@ describe('LedgerEngine.computeSummary', () => {
   it('aggregates metadata into summary', () => {
     let state = empty();
     state = LedgerEngine.processBuy(state, buyTx({ quantity: 5, totalAmount: 100 }));
-    state = LedgerEngine.processSell(state, sellTx({ quantity: 5, totalAmount: 150, source: 'portfolio' }));
+    state = LedgerEngine.processSell(state, sellTx({ quantity: 5, totalAmount: 150, source: 'portfolio' })) as LedgerState;
     state = LedgerEngine.processMineSell(state, mineSellTx({ totalAmount: 300 }));
     state = LedgerEngine.processExpense(state, expenseTx({ totalAmount: 50 }));
     const s = LedgerEngine.computeSummary(state);
