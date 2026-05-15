@@ -7,6 +7,7 @@ import {
   computeBalanceHistory,
   computePortfolioComposition,
   computeCumulativePnl,
+  computePriceDistribution,
   getDateRange,
   filterByDateRange,
 } from './analytics';
@@ -15,6 +16,7 @@ import {
   PortfolioCompositionChart,
   OreReturnChart,
   ReturnRateChart,
+  PriceDistributionGridChart,
 } from './charts';
 
 interface AnalyticsViewProps {
@@ -54,6 +56,8 @@ export function AnalyticsView({ transactions, portfolio, theme }: AnalyticsViewP
       return { ...point, cumulativePnl: lastPnl };
     });
   }, [balanceHistory, cumulativePnl]);
+
+  const priceDist = useMemo(() => computePriceDistribution(filteredTxs), [filteredTxs]);
 
   const noTx = filteredTxs.length === 0;
 
@@ -121,6 +125,14 @@ export function AnalyticsView({ transactions, portfolio, theme }: AnalyticsViewP
           {/* Return Rate by Ore */}
           <SectionCard title="Return Rate by Ore">
             <ReturnRateChart data={oreReturns} theme={theme} />
+          </SectionCard>
+
+          {/* Ore Price Distribution */}
+          <SectionCard title="Ore Price Distribution (Buy vs Sell)">
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+              * Based on the selected date range
+            </p>
+            <PriceDistributionGridChart data={priceDist} theme={theme} />
           </SectionCard>
         </div>
       )}

@@ -248,6 +248,78 @@ export function computeCumulativePnl(transactions: Transaction[]): CumulativePnl
   return points;
 }
 
+/* ─── Price Distribution (Box Plot) ─── */
+
+export interface PriceStats {
+  min: number;
+  q1: number;
+  median: number;
+  q3: number;
+  max: number;
+  count: number;
+}
+
+export interface OrePriceDistribution {
+  oreId: string;
+  oreName: string;
+  category: string;
+  buy: PriceStats | null;
+  sell: PriceStats | null;
+}
+
+function percentile(sorted: number[], p: number): number {
+  const index = p * (sorted.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return r2(sorted[lower]);
+  return r2(sorted[lower] * (upper - index) + sorted[upper] * (index - lower));
+}
+
+function computeStats(prices: number[]): PriceStats | null {
+  if (prices.length === 0) return null;
+  const sorted = [...prices].sort((a, b) => a - b);
+  return {
+    min: sorted[0],
+    q1: percentile(sorted, 0.25),
+    median: percentile(sorted, 0.5),
+    q3: percentile(sorted, 0.75),
+    max: sorted[sorted.length - 1],
+    count: sorted.length,
+  };
+}
+
+export function computePriceDistribution(
+  transactions: Transaction[]
+): OrePriceDistribution[] {
+  const buyPrices: Record<string, number[]> = {};
+  const sellPrices: Record<string, number[]> = {};
+  const oreIds = new Set<string>();
+
+  for (const tx of transactions) {
+    if (!tx.asset || tx.unitPrice == null) continue;
+    oreIds.add(tx.asset);
+    if (tx.type === 'buy') {
+      (buyPrices[tx.asset] ??= []).push(tx.unitPrice);
+    } else if (tx.type === 'sell') {
+      (sellPrices[tx.asset] ??= []).push(tx.unitPrice);
+    }
+  }
+
+  return Array.from(oreIds)
+    .sort()
+    .map(id => {
+      const ore = ORE_MAP.get(id);
+      return {
+        oreId: id,
+        oreName: ore?.name || id,
+        category: ore?.category || 'unknown',
+        buy: computeStats(buyPrices[id] || []),
+        sell: computeStats(sellPrices[id] || []),
+      };
+    })
+    .filter(d => d.buy || d.sell);
+}
+
 export function getDateRange(
   range: string,
 ): { startDate: string; endDate: string } {

@@ -16,7 +16,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import type { OreReturnData, BalancePoint, CompositionItem } from './analytics';
+import type { OreReturnData, BalancePoint, CompositionItem, OrePriceDistribution } from './analytics';
 
 const COLORS = {
   cash: '#3b82f6',
@@ -88,13 +88,13 @@ export function NetWorthTrendChart({ data, trendData, theme }: NetWorthTrendChar
     try {
       const saved = localStorage.getItem('ore_ledger_chart_toggles');
       if (saved) return { netWorth: true, portfolioValue: false, cash: false, cumulativePnl: false, ...JSON.parse(saved) };
-    } catch {}
+    } catch { }
     return { netWorth: true, portfolioValue: false, cash: false, cumulativePnl: false };
   });
 
   useEffect(() => {
     try { localStorage.setItem('ore_ledger_chart_toggles', JSON.stringify(lineState)); }
-    catch {}
+    catch { }
   }, [lineState]);
 
   const toggle = useCallback((key: string) => {
@@ -266,6 +266,180 @@ export function ReturnRateChart({ data, theme }: { data: OreReturnData[] } & Cha
         </Bar>
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+/* ─── Ore Price Distribution (Box Plot) ─── */
+
+/* ─── Ore Price Distribution Grid (Mini Box Plots) ─── */
+
+const BUY_COLOR = '#3b82f6';
+const SELL_COLOR = '#f59e0b';
+
+function fmt(v: number): string {
+  return v % 1 === 0 ? v.toFixed(0) : v.toFixed(1);
+}
+
+function MiniBoxPlot({ data, theme }: { data: OrePriceDistribution; theme: string }): JSX.Element {
+  const { oreName, buy, sell } = data;
+  const c = chartColors(theme);
+
+  const calcScale = (stats: typeof buy) => {
+    if (!stats) return null;
+    const range = stats.max - stats.min;
+    const pad = range === 0 ? (stats.max * 0.2 || 1) : range * 0.08;
+    return {
+      min: Math.max(0, stats.min - pad),
+      max: stats.max + pad,
+    };
+  };
+  const buyScale = calcScale(buy);
+  const sellScale = calcScale(sell);
+
+  const chartData = [{
+    name: oreName,
+    buyMin: buy?.min,
+    buyQ1: buy?.q1,
+    buyMedian: buy?.median,
+    buyQ3: buy?.q3,
+    buyMax: buy?.max,
+    buyCount: buy?.count,
+    sellMin: sell?.min,
+    sellQ1: sell?.q1,
+    sellMedian: sell?.median,
+    sellQ3: sell?.q3,
+    sellMax: sell?.max,
+    sellCount: sell?.count,
+  }];
+
+  function BoxShape({ x, y, width, height, payload, type, locMin }: any) {
+    const prefix = type as 'buy' | 'sell';
+    const color = prefix === 'buy' ? BUY_COLOR : SELL_COLOR;
+    const dataMin = payload[`${prefix}Min`];
+    const dataQ1 = payload[`${prefix}Q1`];
+    const dataMedian = payload[`${prefix}Median`];
+    const dataQ3 = payload[`${prefix}Q3`];
+    const dataMax = payload[`${prefix}Max`];
+
+    if (dataMin == null || dataMax == null) return null;
+    const barRange = dataMax - locMin;
+    if (barRange <= 0) return null;
+    const pixelsPerUnit = height / barRange;
+    const toY = (v: number) => (y + height) - (v - locMin) * pixelsPerUnit;
+
+    const centerX = x + width / 2;
+    const boxHalf = Math.max(3, width * 0.35);
+
+    return (
+      <g>
+        <line x1={centerX} y1={toY(dataMin)} x2={centerX} y2={toY(dataQ1)} stroke={color} strokeWidth={1.2} />
+        <line x1={centerX - boxHalf} y1={toY(dataMin)} x2={centerX + boxHalf} y2={toY(dataMin)} stroke={color} strokeWidth={1.2} />
+        <rect x={centerX - boxHalf} y={toY(dataQ3)} width={boxHalf * 2} height={Math.max(1, toY(dataQ1) - toY(dataQ3))}
+          fill={color} fillOpacity={0.18} stroke={color} strokeWidth={1.2} />
+        <line x1={centerX - boxHalf} y1={toY(dataMedian)} x2={centerX + boxHalf} y2={toY(dataMedian)} stroke={color} strokeWidth={2} />
+        <line x1={centerX} y1={toY(dataQ3)} x2={centerX} y2={toY(dataMax)} stroke={color} strokeWidth={1.2} />
+        <line x1={centerX - boxHalf} y1={toY(dataMax)} x2={centerX + boxHalf} y2={toY(dataMax)} stroke={color} strokeWidth={1.2} />
+      </g>
+    );
+  }
+
+  function MiniTooltip({ active, payload }: any) {
+    if (!active || !payload || payload.length === 0) return null;
+    const d = payload[0]?.payload;
+    if (!d) return null;
+    return (
+      <div style={{
+        background: c.tooltipBg,
+        border: `1px solid ${c.tooltipBorder}`,
+        borderRadius: 8,
+        padding: '7px 10px',
+        fontSize: 12,
+        lineHeight: 1.6,
+      }}>
+        <div style={{ fontWeight: 600, marginBottom: 3, fontSize: 13, color: c.text }}>
+          {d.name}
+        </div>
+        {d.buyMin != null && (
+          <div>
+            <span style={{ fontWeight: 600, color: BUY_COLOR }}>Buy</span>{' '}
+            <span style={{ color: c.text }}>
+              Min {fmt(d.buyMin)} Q1 {fmt(d.buyQ1)} Med {fmt(d.buyMedian)} Q3 {fmt(d.buyQ3)} Max {fmt(d.buyMax)} n={d.buyCount}
+            </span>
+          </div>
+        )}
+        {d.sellMin != null && (
+          <div>
+            <span style={{ fontWeight: 600, color: SELL_COLOR }}>Sell</span>{' '}
+            <span style={{ color: c.text }}>
+              Min {fmt(d.sellMin)} Q1 {fmt(d.sellQ1)} Med {fmt(d.sellMedian)} Q3 {fmt(d.sellQ3)} Max {fmt(d.sellMax)} n={d.sellCount}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const axisTick = { fontSize: 8.5, fill: c.text };
+  const fmtAxis = (v: number) => v.toFixed(0);
+
+  return (
+    <div>
+      <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: c.text, marginBottom: 1 }}>
+        {oreName}
+      </div>
+      <ResponsiveContainer width="100%" height={118}>
+        <BarChart data={chartData} margin={{ top: 2, right: 2, bottom: 0, left: 0 }}>
+          {buyScale && (
+            <YAxis yAxisId="buy" domain={[buyScale.min, buyScale.max]} orientation="left"
+              tick={axisTick} width={28} axisLine={false} tickLine={false} tickFormatter={fmtAxis} />
+          )}
+          {sellScale && (
+            <YAxis yAxisId="sell" domain={[sellScale.min, sellScale.max]} orientation="right"
+              tick={axisTick} width={28} axisLine={false} tickLine={false} tickFormatter={fmtAxis} />
+          )}
+          <Tooltip content={<MiniTooltip />} cursor={false} />
+          {buyScale && (
+            <Bar yAxisId="buy" dataKey="buyMax" shape={<BoxShape type="buy" locMin={buyScale.min} />}
+              fill={BUY_COLOR} isAnimationActive={false} />
+          )}
+          {sellScale && (
+            <Bar yAxisId="sell" dataKey="sellMax" shape={<BoxShape type="sell" locMin={sellScale.min} />}
+              fill={SELL_COLOR} isAnimationActive={false} />
+          )}
+        </BarChart>
+      </ResponsiveContainer>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 10, color: c.text }}>
+        {buy && <div><span style={{ color: BUY_COLOR, fontWeight: 600 }}>Buy</span> n={buy.count}</div>}
+        {sell && <div><span style={{ color: SELL_COLOR, fontWeight: 600 }}>Sell</span> n={sell.count}</div>}
+      </div>
+    </div>
+  );
+}
+
+export function PriceDistributionGridChart({ data, theme }: { data: OrePriceDistribution[] } & ChartThemeProps): JSX.Element {
+  if (data.length === 0) {
+    return <EmptyChartMessage />;
+  }
+
+  const ordered = [...data].sort((a, b) => {
+    const aBoth = (a.buy ? 1 : 0) + (a.sell ? 1 : 0);
+    const bBoth = (b.buy ? 1 : 0) + (b.sell ? 1 : 0);
+    if (bBoth !== aBoth) return bBoth - aBoth;
+    const aMax = Math.max(a.buy?.max ?? 0, a.sell?.max ?? 0);
+    const bMax = Math.max(b.buy?.max ?? 0, b.sell?.max ?? 0);
+    return bMax - aMax;
+  });
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(195px, 1fr))',
+      gap: 16,
+    }}>
+      {ordered.map(d => (
+        <MiniBoxPlot key={d.oreId} data={d} theme={theme} />
+      ))}
+    </div>
   );
 }
 
